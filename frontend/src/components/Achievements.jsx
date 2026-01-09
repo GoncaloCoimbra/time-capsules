@@ -78,7 +78,7 @@ function Achievements({ capsules = [], statistics = null }) {
       id: 7,
       name: 'Taggeiro',
       description: 'Use 5 tags diferentes em suas cápsulas',
-      icon: '🏷️',
+      icon: '',
       condition: () => {
         const tags = new Set();
         capsules.forEach(c => {
@@ -113,7 +113,7 @@ function Achievements({ capsules = [], statistics = null }) {
       id: 10,
       name: 'Favorito das Massas',
       description: 'Tenha 3 cápsulas marcadas como favorito',
-      icon: '❤️',
+      icon: '',
       condition: () => capsules.filter(c => c.isFavorite).length >= 3,
       difficulty: 'medium',
       reward: '60 XP'
@@ -262,12 +262,12 @@ function Achievements({ capsules = [], statistics = null }) {
       <div className="achievements-tips">
         <h3>💡 Dicas para Desbloquear Mais Achievements</h3>
         <ul>
-          <li>✨ Crie mais cápsulas em diferentes categorias</li>
-          <li>🏷️ Use diferentes tags para organizar suas cápsulas</li>
-          <li>🌍 Compartilhe suas cápsulas com a comunidade</li>
-          <li>❤️ Marque cápsulas favoritas que você ama</li>
-          <li>⏰ Aguarde o desbloqueio de cápsulas antigas</li>
-          <li>👁️ Crie cápsulas públicas para ganhar visualizações</li>
+          <li>Crie mais cápsulas em diferentes categorias</li>
+          <li> Use diferentes tags para organizar suas cápsulas</li>
+          <li> Compartilhe suas cápsulas com a comunidade</li>
+          <li> Marque cápsulas favoritas que você ama</li>
+          <li> Aguarde o desbloqueio de cápsulas antigas</li>
+          <li> Crie cápsulas públicas para ganhar visualizações</li>
         </ul>
       </div>
     </div>

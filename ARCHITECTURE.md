@@ -354,31 +354,31 @@ Responsive       ✅ Done   High       High     High
 
 ```
 Frontend:
-  ✨ React 19 com Hooks
-  ✨ Vite para build rápido
-  ✨ React Router v7
-  ✨ Recharts para gráficos
-  ✨ Framer Motion animações
-  ✨ Axios para API calls
-  ✨ Responsive design
+  React 19 com Hooks
+  Vite para build rápido
+  React Router v7
+  Recharts para gráficos
+  Framer Motion animações
+  Axios para API calls
+  Responsive design
 
 Backend:
-  ✨ Express.js framework
-  ✨ Sequelize ORM
-  ✨ SQLite database
-  ✨ JWT authentication
-  ✨ Input validation
-  ✨ Error handling
-  ✨ Rate limiting
+  Express.js framework
+  Sequelize ORM
+  SQLite database
+  JWT authentication
+  Input validation
+  Error handling
+  Rate limiting
 
 Qualidade:
-  ✨ ESLint configured
-  ✨ Meaningful git commits
-  ✨ Clean code principles
-  ✨ DRY methodology
-  ✨ SOLID principles
-  ✨ Modular architecture
-  ✨ Security best practices
+  ESLint configured
+  Meaningful git commits
+  Clean code principles
+  DRY methodology
+  SOLID principles
+  Modular architecture
+  Security best practices
 ```
 
 ---
@@ -398,6 +398,6 @@ Este é um projeto **profissional, completo e pronto para produção** que demon
 
 ---
 
-Made with ❤️ by **Gonçalo Coimbra** and **Ana**
+Made with  by **Gonçalo Coimbra** and **Ana**
 
 **Status: ✅ READY FOR PRODUCTION** 🚀

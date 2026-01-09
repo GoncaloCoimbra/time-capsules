@@ -15,7 +15,7 @@ Perfect for:
 - ✅ Create and manage time capsules
 - 🔐 Auto-unlock based on custom unlock dates
 - 📁 Organize with custom categories
-- 🏷️ Tag system for better organization
+-  Tag system for better organization
 - ⭐ Favorite your important capsules
 - 📊 Detailed statistics and analytics
 - 📈 Visual charts and graphs
@@ -36,8 +36,8 @@ Perfect for:
 - 🔍 Advanced search and filtering
 - 🖼️ Multiple view modes (Grid/List)
 - 📑 Multiple sorting options
-- ⏰ Reminder system for unlocks
-- 👁️ View counter
+-  Reminder system for unlocks
+-  View counter
 - 🔒 Privacy controls (public/private)
 - 📚 Templates library
 - 📝 Audit logging
@@ -356,6 +356,6 @@ For support, open an issue on GitHub or contact the team.
 
 ---
 
-Made with ❤️ by Gonçalo Coimbra and Ana
+Made with  by Gonçalo Coimbra and Ana
 
 ⭐ If you like this project, please give it a star!

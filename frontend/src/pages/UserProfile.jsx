@@ -1,11 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { capsuleAPI, communityAPI, favoriteAPI, commentAPI, likeAPI, followAPI, notificationAPI, authAPI } from '../services/capsuleService';
-import '../styles/userProfile.css';
 
 function UserProfile() {
   const { userId } = useParams();
@@ -17,8 +16,19 @@ function UserProfile() {
   const [selectedCapsule, setSelectedCapsule] = useState(null);
   const [loading, setLoading] = useState(true);
   const { user: currentUser } = useAuth();
-  const [filterType, setFilterType] = useState('all'); // all, unlocked, locked
-  const [sortBy, setSortBy] = useState('recent'); // recent, popular, trending
+  const [filterType, setFilterType] = useState('all');
+  const [sortBy, setSortBy] = useState('recent');
+
+  // Estados para edição de perfil
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [editUsername, setEditUsername] = useState('');
+  const [editAvatar, setEditAvatar] = useState('');
+  const [editBio, setEditBio] = useState('');
+  const [editPassword, setEditPassword] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState('');
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     loadUserProfile();
@@ -39,14 +49,16 @@ function UserProfile() {
       // Construir perfil a partir dos dados
       if (capsules.length > 0) {
         const creator = capsules[0].User;
-        setUserProfile({
+        const userData = {
           id: userId,
           username: creator?.username || 'Usuário Anônimo',
           email: creator?.email,
           createdAt: creator?.createdAt,
           avatar: creator?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`,
-          bio: creator?.bio || 'Colecionador de cápsulas temporais ⏰'
-        });
+          bio: creator?.bio || 'Colecionador de cápsulas temporais'
+        };
+        setUserProfile(userData);
+        setAvatarPreview(userData.avatar);
 
         // Calcular estatísticas
         const stats = {
@@ -59,6 +71,32 @@ function UserProfile() {
           memberSince: format(new Date(creator?.createdAt), 'MMMM yyyy', { locale: ptBR })
         };
         setUserStats(stats);
+      } else {
+        // Se o usuário não tem cápsulas, buscar informações básicas
+        try {
+          const defaultAvatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`;
+          const userData = {
+            id: userId,
+            username: 'Usuário',
+            avatar: defaultAvatar,
+            bio: 'Colecionador de cápsulas temporais',
+            createdAt: new Date()
+          };
+          setUserProfile(userData);
+          setAvatarPreview(defaultAvatar);
+          
+          setUserStats({
+            totalCapsules: 0,
+            unlockedCapsules: 0,
+            lockedCapsules: 0,
+            totalViews: 0,
+            totalLikes: 0,
+            totalComments: 0,
+            memberSince: format(new Date(), 'MMMM yyyy', { locale: ptBR })
+          });
+        } catch (error) {
+          console.error('Erro ao carregar informações do usuário:', error);
+        }
       }
 
       // check follow status
@@ -80,13 +118,6 @@ function UserProfile() {
     }
   };
 
-  const [isFollowing, setIsFollowing] = useState(false);
-  const [showEditProfile, setShowEditProfile] = useState(false);
-  const [editUsername, setEditUsername] = useState('');
-  const [editAvatar, setEditAvatar] = useState('');
-  const [editBio, setEditBio] = useState('');
-  const [editPassword, setEditPassword] = useState('');
-
   const toggleFollowUser = async () => {
     if (!currentUser) return navigate('/login');
     try {
@@ -98,21 +129,108 @@ function UserProfile() {
   };
 
   const openEditProfile = () => {
-    setEditUsername(userProfile.username || '');
-    setEditAvatar(userProfile.avatar || '');
-    setEditBio(userProfile.bio || '');
-    setShowEditProfile(true);
+    // Usar os dados do contexto de autenticação para preencher o formulário
+    if (currentUser && currentUser.id === userId) {
+      setEditUsername(currentUser.username || '');
+      setEditAvatar(currentUser.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.id}`);
+      setEditBio(currentUser.bio || '');
+      setEditPassword('');
+      setAvatarPreview(currentUser.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.id}`);
+      setShowEditProfile(true);
+    }
+  };
+
+  const handleAvatarChange = (e) => {
+    const value = e.target.value;
+    setEditAvatar(value);
+    setAvatarPreview(value);
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Verificar se o arquivo é uma imagem
+      if (!file.type.startsWith('image/')) {
+        alert('Por favor, selecione um arquivo de imagem válido.');
+        return;
+      }
+
+      // Verificar o tamanho do arquivo (limite de 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('A imagem deve ter menos de 5MB.');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result;
+        setEditAvatar(base64String);
+        setAvatarPreview(base64String);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const generateRandomAvatar = () => {
+    const randomSeed = Math.random().toString(36).substring(2, 15);
+    const randomAvatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${randomSeed}`;
+    setEditAvatar(randomAvatar);
+    setAvatarPreview(randomAvatar);
   };
 
   const saveProfileEdits = async () => {
+    if (!currentUser || currentUser.id !== userId) return;
+    
     try {
-      const payload = { username: editUsername, avatar: editAvatar, bio: editBio };
-      if (editPassword) payload.password = editPassword;
+      setIsSaving(true);
+      const payload = { 
+        username: editUsername.trim(), 
+        avatar: editAvatar.trim(), 
+        bio: editBio.trim() 
+      };
+      
+      // Validar campos obrigatórios
+      if (!payload.username) {
+        alert('O nome de usuário é obrigatório.');
+        return;
+      }
+
+      if (editPassword.trim()) {
+        if (editPassword.length < 6) {
+          alert('A senha deve ter no mínimo 6 caracteres.');
+          return;
+        }
+        payload.password = editPassword;
+      }
+      
       const res = await authAPI.updateProfile(payload);
-      setUserProfile(prev => ({ ...prev, ...res.data.user }));
+      
+      // Atualizar o estado local
+      setUserProfile(prev => ({ 
+        ...prev, 
+        username: res.data.user.username,
+        avatar: res.data.user.avatar,
+        bio: res.data.user.bio
+      }));
+      
+      // Atualizar o contexto de autenticação
+      const updatedUser = { ...currentUser, ...res.data.user };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      
+      // Fechar o modal primeiro
       setShowEditProfile(false);
+      
+      // Mostrar mensagem de sucesso
+      alert('Perfil atualizado com sucesso!');
+      
+      // Recarregar os dados do perfil
+      loadUserProfile();
+      
     } catch (error) {
       console.error('Error updating profile:', error);
+      alert('Erro ao atualizar perfil. Verifique os dados e tente novamente.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -174,275 +292,1112 @@ function UserProfile() {
   const displayedCapsules = getFilteredAndSortedCapsules();
 
   return (
-    <div className="user-profile-container">
-      {/* Cabeçalho do Perfil */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="profile-header"
-      >
-        <button className="back-btn" onClick={() => navigate(-1)}>
-          ← Voltar
-        </button>
+    <>
+      <div className="user-profile-container">
+        {/* Cabeçalho do Perfil */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="profile-header"
+        >
+          <button className="back-btn" onClick={() => navigate(-1)}>
+            ← Voltar
+          </button>
 
-        <div className="profile-card">
-          <div className="profile-banner" style={{
-            background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)'
-          }}>
-            <img 
-              src={userProfile.avatar} 
-              alt={userProfile.username}
-              className="profile-avatar"
-            />
-          </div>
+          <div className="profile-card">
+            <div className="profile-banner" style={{
+              background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)'
+            }}>
+              <img 
+                src={userProfile.avatar} 
+                alt={userProfile.username}
+                className="profile-avatar"
+              />
+            </div>
 
-          <div className="profile-info">
-            <h1>{userProfile.username}</h1>
-            <p className="profile-bio">✨ {userProfile.bio}</p>
-            
-            <div className="profile-meta">
-              <div className="meta-item">
-                <span className="meta-label">Membro desde</span>
-                <span className="meta-value">{userStats?.memberSince}</span>
+            <div className="profile-info">
+              <h1>{userProfile.username}</h1>
+              <p className="profile-bio">{userProfile.bio}</p>
+              
+              <div className="profile-meta">
+                <div className="meta-item">
+                  <span className="meta-label">Membro desde</span>
+                  <span className="meta-value">{userStats?.memberSince}</span>
+                </div>
               </div>
             </div>
-          </div>
-          <div className="profile-actions">
-            {currentUser && currentUser.id === userProfile.id && (
-              <button className="btn-secondary" onClick={openEditProfile}>Editar Perfil</button>
-            )}
+            <div className="profile-actions">
+              {currentUser && currentUser.id === userProfile.id && (
+                <button className="btn-secondary" onClick={openEditProfile}>Editar Perfil</button>
+              )}
 
-            {currentUser && currentUser.id !== userProfile.id && (
-              <button className={`btn-primary ${isFollowing ? 'following' : ''}`} onClick={toggleFollowUser}>
-                {isFollowing ? 'Seguindo' : 'Seguir'}
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Stats Grid */}
-        <div className="profile-stats">
-          <motion.div 
-            className="stat-card"
-            whileHover={{ scale: 1.05 }}
-          >
-            <div className="stat-icon">📦</div>
-            <div className="stat-content">
-              <span className="stat-number">{userStats?.totalCapsules}</span>
-              <span className="stat-label">Cápsulas Públicas</span>
-            </div>
-          </motion.div>
-
-          <motion.div 
-            className="stat-card"
-            whileHover={{ scale: 1.05 }}
-          >
-            <div className="stat-icon">🔓</div>
-            <div className="stat-content">
-              <span className="stat-number">{userStats?.unlockedCapsules}</span>
-              <span className="stat-label">Desbloqueadas</span>
-            </div>
-          </motion.div>
-
-          <motion.div 
-            className="stat-card"
-            whileHover={{ scale: 1.05 }}
-          >
-            <div className="stat-icon">👁️</div>
-            <div className="stat-content">
-              <span className="stat-number">{userStats?.totalViews}</span>
-              <span className="stat-label">Visualizações</span>
-            </div>
-          </motion.div>
-
-          <motion.div 
-            className="stat-card"
-            whileHover={{ scale: 1.05 }}
-          >
-            <div className="stat-icon">❤️</div>
-            <div className="stat-content">
-              <span className="stat-number">{userStats?.totalLikes}</span>
-              <span className="stat-label">Curtidas</span>
-            </div>
-          </motion.div>
-
-          <motion.div 
-            className="stat-card"
-            whileHover={{ scale: 1.05 }}
-          >
-            <div className="stat-icon">💬</div>
-            <div className="stat-content">
-              <span className="stat-number">{userStats?.totalComments}</span>
-              <span className="stat-label">Comentários</span>
-            </div>
-          </motion.div>
-        </div>
-      </motion.div>
-
-      {/* Filtros e Controles */}
-      <motion.div 
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="controls-section"
-      >
-        <div className="filter-controls">
-          <div className="filter-group">
-            <label>Filtrar:</label>
-            <div className="filter-buttons">
-              <button 
-                className={`filter-btn ${filterType === 'all' ? 'active' : ''}`}
-                onClick={() => setFilterType('all')}
-              >
-                Todas
-              </button>
-              <button 
-                className={`filter-btn ${filterType === 'unlocked' ? 'active' : ''}`}
-                onClick={() => setFilterType('unlocked')}
-              >
-                Desbloqueadas
-              </button>
-              <button 
-                className={`filter-btn ${filterType === 'locked' ? 'active' : ''}`}
-                onClick={() => setFilterType('locked')}
-              >
-                Bloqueadas
-              </button>
+              {currentUser && currentUser.id !== userProfile.id && (
+                <button className={`btn-primary ${isFollowing ? 'following' : ''}`} onClick={toggleFollowUser}>
+                  {isFollowing ? 'Seguindo' : 'Seguir'}
+                </button>
+              )}
             </div>
           </div>
 
-          <div className="sort-group">
-            <label>Ordenar por:</label>
-            <select 
-              value={sortBy} 
-              onChange={(e) => setSortBy(e.target.value)}
-              className="sort-select"
+          {/* Stats Grid */}
+          <div className="profile-stats">
+            <motion.div 
+              className="stat-card"
+              whileHover={{ scale: 1.05 }}
             >
-              <option value="recent">Recentes</option>
-              <option value="popular">Populares</option>
-              <option value="trending">Em Tendência</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="results-info">
-          Mostrando {displayedCapsules.length} cápsula{displayedCapsules.length !== 1 ? 's' : ''}
-        </div>
-      </motion.div>
-
-      {/* Grid de Cápsulas */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.2 }}
-        className="capsules-grid"
-      >
-        <AnimatePresence>
-          {displayedCapsules.length > 0 ? (
-            displayedCapsules.map((capsule, index) => (
-              <motion.div
-                key={capsule.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ delay: index * 0.05 }}
-                className="capsule-card"
-                onClick={() => setSelectedCapsule(capsule)}
-                style={{ cursor: 'pointer' }}
-              >
-                <div className="capsule-header">
-                  <div 
-                    className="capsule-color"
-                    style={{ backgroundColor: capsule.color || '#6366f1' }}
-                  />
-                  <div className="capsule-title-badge">
-                    <h3>{capsule.title}</h3>
-                    <span className={`status-badge ${capsule.isUnlocked ? 'unlocked' : 'locked'}`}>
-                      {capsule.isUnlocked ? '🔓' : '🔒'}
-                    </span>
-                  </div>
-                </div>
-
-                <p className="capsule-preview">
-                  {capsule.content.substring(0, 80)}...
-                </p>
-
-                <div className="capsule-meta">
-                  <span>📅 {format(new Date(capsule.unlockDate), 'dd MMM', { locale: ptBR })}</span>
-                  <span>👁️ {capsule.viewCount || 0}</span>
-                  <span>❤️ {capsule.likeCount || 0}</span>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); toggleFavorite(capsule.id); }}
-                    className={`fav-btn ${(capsule.isFavorited || capsule.isFavorite) ? 'active' : ''}`}
-                  >
-                    {(capsule.isFavorited || capsule.isFavorite) ? '★' : '☆'}
-                  </button>
-                </div>
-
-                <motion.div 
-                  className="view-button"
-                  whileHover={{ x: 5 }}
-                >
-                  Ver Detalhes →
-                </motion.div>
-              </motion.div>
-            ))
-          ) : (
-            <div className="empty-state">
-              <p>Este usuário ainda não tem cápsulas públicas</p>
-            </div>
-          )}
-        </AnimatePresence>
-      </motion.div>
-
-      {/* Modal de Detalhe da Cápsula */}
-      <AnimatePresence>
-        {selectedCapsule && (
-          <CapsuleDetailModal 
-            capsule={selectedCapsule}
-            onClose={() => setSelectedCapsule(null)}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Edit Profile Modal */}
-      <AnimatePresence>
-        {showEditProfile && (
-          <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowEditProfile(false)}>
-            <motion.div className="capsule-modal" initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} onClick={(e) => e.stopPropagation()}>
-              <button className="modal-close" onClick={() => setShowEditProfile(false)}>✕</button>
-              <div className="modal-content">
-                <h2>Editar Perfil</h2>
-                <div className="form-group">
-                  <label>Avatar (URL)</label>
-                  <input value={editAvatar} onChange={(e) => setEditAvatar(e.target.value)} />
-                </div>
-                <div className="form-group">
-                  <label>Nome de usuário</label>
-                  <input value={editUsername} onChange={(e) => setEditUsername(e.target.value)} />
-                </div>
-                <div className="form-group">
-                  <label>Bio</label>
-                  <textarea value={editBio} onChange={(e) => setEditBio(e.target.value)} />
-                </div>
-                <div className="form-group">
-                  <label>Nova senha (opcional)</label>
-                  <input type="password" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} />
-                </div>
-                <div className="form-actions">
-                  <button className="chronicle-button" onClick={saveProfileEdits}>Salvar</button>
-                  <button className="btn-secondary" onClick={() => setShowEditProfile(false)}>Cancelar</button>
-                </div>
+              <div className="stat-icon">📦</div>
+              <div className="stat-content">
+                <span className="stat-number">{userStats?.totalCapsules}</span>
+                <span className="stat-label">Cápsulas Públicas</span>
               </div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+
+            <motion.div 
+              className="stat-card"
+              whileHover={{ scale: 1.05 }}
+            >
+              <div className="stat-icon">🔓</div>
+              <div className="stat-content">
+                <span className="stat-number">{userStats?.unlockedCapsules}</span>
+                <span className="stat-label">Desbloqueadas</span>
+              </div>
+            </motion.div>
+
+            <motion.div 
+              className="stat-card"
+              whileHover={{ scale: 1.05 }}
+            >
+              <div className="stat-icon"></div>
+              <div className="stat-content">
+                <span className="stat-number">{userStats?.totalViews}</span>
+                <span className="stat-label">Visualizações</span>
+              </div>
+            </motion.div>
+
+            <motion.div 
+              className="stat-card"
+              whileHover={{ scale: 1.05 }}
+            >
+              <div className="stat-icon"></div>
+              <div className="stat-content">
+                <span className="stat-number">{userStats?.totalLikes}</span>
+                <span className="stat-label">Curtidas</span>
+              </div>
+            </motion.div>
+
+            <motion.div 
+              className="stat-card"
+              whileHover={{ scale: 1.05 }}
+            >
+              <div className="stat-icon">💬</div>
+              <div className="stat-content">
+                <span className="stat-number">{userStats?.totalComments}</span>
+                <span className="stat-label">Comentários</span>
+              </div>
+            </motion.div>
+          </div>
+        </motion.div>
+
+        {/* Filtros e Controles */}
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="controls-section"
+        >
+          <div className="filter-controls">
+            <div className="filter-group">
+              <label>Filtrar:</label>
+              <div className="filter-buttons">
+                <button 
+                  className={`filter-btn ${filterType === 'all' ? 'active' : ''}`}
+                  onClick={() => setFilterType('all')}
+                >
+                  Todas
+                </button>
+                <button 
+                  className={`filter-btn ${filterType === 'unlocked' ? 'active' : ''}`}
+                  onClick={() => setFilterType('unlocked')}
+                >
+                  Desbloqueadas
+                </button>
+                <button 
+                  className={`filter-btn ${filterType === 'locked' ? 'active' : ''}`}
+                  onClick={() => setFilterType('locked')}
+                >
+                  Bloqueadas
+                </button>
+              </div>
+            </div>
+
+            <div className="sort-group">
+              <label>Ordenar por:</label>
+              <select 
+                value={sortBy} 
+                onChange={(e) => setSortBy(e.target.value)}
+                className="sort-select"
+              >
+                <option value="recent">Recentes</option>
+                <option value="popular">Populares</option>
+                <option value="trending">Em Tendência</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="results-info">
+            Mostrando {displayedCapsules.length} cápsula{displayedCapsules.length !== 1 ? 's' : ''}
+          </div>
+        </motion.div>
+
+        {/* Grid de Cápsulas */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className="capsules-grid"
+        >
+          <AnimatePresence>
+            {displayedCapsules.length > 0 ? (
+              displayedCapsules.map((capsule, index) => (
+                <motion.div
+                  key={capsule.id}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="capsule-card"
+                  onClick={() => setSelectedCapsule(capsule)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <div className="capsule-header">
+                    <div 
+                      className="capsule-color"
+                      style={{ backgroundColor: capsule.color || '#6366f1' }}
+                    />
+                    <div className="capsule-title-badge">
+                      <h3>{capsule.title}</h3>
+                      <span className={`status-badge ${capsule.isUnlocked ? 'unlocked' : 'locked'}`}>
+                        {capsule.isUnlocked ? '🔓' : '🔒'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <p className="capsule-preview">
+                    {capsule.content.substring(0, 80)}...
+                  </p>
+
+                  <div className="capsule-meta">
+                    <span>📅 {format(new Date(capsule.unlockDate), 'dd MMM', { locale: ptBR })}</span>
+                    <span> {capsule.viewCount || 0}</span>
+                    <span> {capsule.likeCount || 0}</span>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); toggleFavorite(capsule.id); }}
+                      className={`fav-btn ${(capsule.isFavorited || capsule.isFavorite) ? 'active' : ''}`}
+                    >
+                      {(capsule.isFavorited || capsule.isFavorite) ? '★' : '☆'}
+                    </button>
+                  </div>
+
+                  <motion.div 
+                    className="view-button"
+                    whileHover={{ x: 5 }}
+                  >
+                    Ver Detalhes →
+                  </motion.div>
+                </motion.div>
+              ))
+            ) : (
+              <div className="empty-state">
+                <p>Este usuário ainda não tem cápsulas públicas</p>
+              </div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+
+        {/* Modal de Detalhe da Cápsula */}
+        <AnimatePresence>
+          {selectedCapsule && (
+            <CapsuleDetailModal 
+              capsule={selectedCapsule}
+              onClose={() => setSelectedCapsule(null)}
+            />
+          )}
+        </AnimatePresence>
+
+        {/* Edit Profile Modal - MELHORADO */}
+        <AnimatePresence>
+          {showEditProfile && (
+            <motion.div 
+              className="modal-overlay" 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }} 
+              onClick={() => setShowEditProfile(false)}
+            >
+              <motion.div 
+                className="capsule-modal profile-edit-modal" 
+                initial={{ scale: 0.95 }} 
+                animate={{ scale: 1 }} 
+                exit={{ scale: 0.95 }} 
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button className="modal-close" onClick={() => setShowEditProfile(false)}>✕</button>
+                <div className="modal-content">
+                  <h2>Editar Perfil</h2>
+                  
+                  {/* Seção de Avatar */}
+                  <div className="avatar-section">
+                    <div className="avatar-preview-container">
+                      <div className="avatar-preview">
+                        <img 
+                          src={avatarPreview} 
+                          alt="Preview do Avatar" 
+                          className="avatar-image"
+                          onError={(e) => {
+                            e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser?.id || 'user'}`;
+                            setAvatarPreview(e.target.src);
+                            setEditAvatar(e.target.src);
+                          }}
+                        />
+                      </div>
+                      <div className="avatar-actions">
+                        <button 
+                          type="button"
+                          className="btn-upload"
+                          onClick={() => fileInputRef.current?.click()}
+                        >
+                          📷 Upload de Foto
+                        </button>
+                        <button 
+                          type="button"
+                          className="btn-random"
+                          onClick={generateRandomAvatar}
+                        >
+                          🎲 Avatar Aleatório
+                        </button>
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          style={{ display: 'none' }}
+                          accept="image/*"
+                          onChange={handleFileUpload}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="avatar-url-input">
+                      <label>Ou use uma URL:</label>
+                      <input 
+                        type="text" 
+                        value={editAvatar} 
+                        onChange={handleAvatarChange}
+                        placeholder="https://exemplo.com/sua-foto.jpg"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Formulário de Informações */}
+                  <div className="form-group">
+                    <label>Nome de usuário *</label>
+                    <input 
+                      type="text" 
+                      value={editUsername} 
+                      onChange={(e) => setEditUsername(e.target.value)}
+                      placeholder="Seu nome de usuário"
+                      required
+                    />
+                  </div>
+                  
+                  <div className="form-group">
+                    <label>Bio</label>
+                    <textarea 
+                      value={editBio} 
+                      onChange={(e) => setEditBio(e.target.value)}
+                      rows="3"
+                      maxLength="200"
+                      placeholder="Conte um pouco sobre você..."
+                    />
+                    <div className="char-count">{editBio.length}/200</div>
+                  </div>
+                  
+                  <div className="form-group">
+                    <label>Nova senha (opcional)</label>
+                    <input 
+                      type="password" 
+                      value={editPassword} 
+                      onChange={(e) => setEditPassword(e.target.value)}
+                      placeholder="Mínimo 6 caracteres"
+                    />
+                    <small>Deixe em branco para manter a senha atual</small>
+                  </div>
+                  
+                  <div className="form-actions">
+                    <button 
+                      className="chronicle-button" 
+                      onClick={saveProfileEdits}
+                      disabled={isSaving || !editUsername.trim()}
+                    >
+                      {isSaving ? (
+                        <>
+                          <span className="spinner"></span>
+                          Salvando...
+                        </>
+                      ) : 'Salvar Alterações'}
+                    </button>
+                    <button 
+                      className="btn-secondary" 
+                      onClick={() => setShowEditProfile(false)}
+                      disabled={isSaving}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      <style>{`
+        /* Estilos Gerais */
+        .user-profile-container {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 20px;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+          color: #f1f5f9;
+        }
+        
+        .loading {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          min-height: 400px;
+        }
+        
+        .loading-spinner {
+          color: #e2b714;
+          font-size: 18px;
+        }
+        
+        .error {
+          text-align: center;
+          padding: 60px 20px;
+        }
+        
+        .error-message h2 {
+          color: #ef4444;
+          margin-bottom: 20px;
+        }
+        
+        /* Cabeçalho do Perfil */
+        .profile-header {
+          position: relative;
+        }
+        
+        .back-btn {
+          position: absolute;
+          top: 0;
+          left: 0;
+          background: rgba(30, 41, 59, 0.5);
+          border: 1px solid #334155;
+          color: #94a3b8;
+          padding: 8px 16px;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+        
+        .back-btn:hover {
+          border-color: #e2b714;
+          color: #e2b714;
+        }
+        
+        .profile-card {
+          background: rgba(15, 15, 25, 0.6);
+          backdrop-filter: blur(20px);
+          border-radius: 20px;
+          border: 1px solid rgba(226, 183, 20, 0.15);
+          margin-top: 40px;
+          overflow: hidden;
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+        
+        .profile-banner {
+          height: 200px;
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        
+        .profile-avatar {
+          width: 150px;
+          height: 150px;
+          border-radius: 50%;
+          border: 4px solid #e2b714;
+          position: absolute;
+          bottom: -75px;
+          background: #1e293b;
+          object-fit: cover;
+        }
+        
+        .profile-info {
+          padding: 90px 30px 30px;
+          text-align: center;
+        }
+        
+        .profile-info h1 {
+          font-size: 32px;
+          font-weight: 700;
+          margin: 0 0 12px 0;
+          color: #f1f5f9;
+        }
+        
+        .profile-bio {
+          color: #94a3b8;
+          font-size: 16px;
+          margin: 0 0 20px 0;
+          max-width: 600px;
+          margin-left: auto;
+          margin-right: auto;
+        }
+        
+        .profile-meta {
+          display: flex;
+          justify-content: center;
+          gap: 30px;
+          margin-top: 20px;
+        }
+        
+        .meta-item {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+        
+        .meta-label {
+          font-size: 12px;
+          color: #64748b;
+          margin-bottom: 4px;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+        }
+        
+        .meta-value {
+          font-size: 14px;
+          color: #e2b714;
+          font-weight: 600;
+        }
+        
+        .profile-actions {
+          padding: 0 30px 30px;
+          display: flex;
+          justify-content: center;
+          gap: 15px;
+        }
+        
+        .btn-primary {
+          background: linear-gradient(135deg, #e2b714 0%, #1f7a8c 100%);
+          border: none;
+          border-radius: 12px;
+          color: white;
+          padding: 12px 24px;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 10px 30px rgba(226, 183, 20, 0.3);
+        }
+        
+        .btn-primary.following {
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+        
+        .btn-secondary {
+          background: rgba(30, 41, 59, 0.5);
+          border: 1px solid #334155;
+          border-radius: 12px;
+          color: #cbd5e1;
+          padding: 12px 24px;
+          font-size: 14px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+        
+        .btn-secondary:hover {
+          border-color: #475569;
+          background: rgba(30, 41, 59, 0.8);
+        }
+        
+        /* Stats Grid */
+        .profile-stats {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 20px;
+          margin-top: 30px;
+        }
+        
+        .stat-card {
+          background: rgba(30, 41, 59, 0.3);
+          border-radius: 16px;
+          padding: 24px;
+          border: 1px solid rgba(226, 183, 20, 0.1);
+          display: flex;
+          align-items: center;
+          gap: 16px;
+        }
+        
+        .stat-icon {
+          font-size: 32px;
+          color: #e2b714;
+        }
+        
+        .stat-content {
+          display: flex;
+          flex-direction: column;
+        }
+        
+        .stat-number {
+          font-family: 'Orbitron', sans-serif;
+          font-size: 28px;
+          font-weight: 700;
+          color: #f1f5f9;
+          margin-bottom: 4px;
+        }
+        
+        .stat-label {
+          font-size: 14px;
+          color: #94a3b8;
+        }
+        
+        /* Filtros e Controles */
+        .controls-section {
+          margin: 40px 0 30px;
+          background: rgba(15, 15, 25, 0.6);
+          backdrop-filter: blur(20px);
+          border-radius: 16px;
+          padding: 24px;
+          border: 1px solid rgba(226, 183, 20, 0.1);
+        }
+        
+        .filter-controls {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 20px;
+        }
+        
+        .filter-group, .sort-group {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        
+        .filter-group label, .sort-group label {
+          font-size: 14px;
+          color: #cbd5e1;
+          font-weight: 500;
+        }
+        
+        .filter-buttons {
+          display: flex;
+          gap: 8px;
+        }
+        
+        .filter-btn {
+          padding: 8px 16px;
+          background: rgba(30, 41, 59, 0.5);
+          border: 1px solid #334155;
+          border-radius: 8px;
+          color: #94a3b8;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          font-size: 14px;
+        }
+        
+        .filter-btn.active {
+          background: rgba(226, 183, 20, 0.2);
+          border-color: #e2b714;
+          color: #e2b714;
+        }
+        
+        .sort-select {
+          padding: 8px 16px;
+          background: rgba(30, 41, 59, 0.5);
+          border: 1px solid #334155;
+          border-radius: 8px;
+          color: #f1f5f9;
+          font-size: 14px;
+          cursor: pointer;
+        }
+        
+        .results-info {
+          text-align: center;
+          margin-top: 20px;
+          color: #94a3b8;
+          font-size: 14px;
+        }
+        
+        /* Grid de Cápsulas */
+        .capsules-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+          gap: 20px;
+          margin-top: 20px;
+        }
+        
+        .capsule-card {
+          background: rgba(30, 41, 59, 0.3);
+          border-radius: 16px;
+          padding: 20px;
+          border: 1px solid rgba(226, 183, 20, 0.1);
+          transition: all 0.3s ease;
+        }
+        
+        .capsule-card:hover {
+          transform: translateY(-4px);
+          border-color: rgba(226, 183, 20, 0.3);
+          box-shadow: 0 10px 30px rgba(226, 183, 20, 0.1);
+        }
+        
+        .capsule-header {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 16px;
+        }
+        
+        .capsule-color {
+          width: 40px;
+          height: 40px;
+          border-radius: 8px;
+        }
+        
+        .capsule-title-badge {
+          flex: 1;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        
+        .capsule-title-badge h3 {
+          margin: 0;
+          font-size: 16px;
+          color: #f1f5f9;
+        }
+        
+        .status-badge {
+          font-size: 20px;
+        }
+        
+        .status-badge.unlocked {
+          color: #34d399;
+        }
+        
+        .status-badge.locked {
+          color: #f59e0b;
+        }
+        
+        .capsule-preview {
+          font-size: 14px;
+          color: #cbd5e1;
+          line-height: 1.6;
+          margin-bottom: 16px;
+        }
+        
+        .capsule-meta {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          color: #94a3b8;
+          font-size: 12px;
+        }
+        
+        .fav-btn {
+          background: none;
+          border: none;
+          font-size: 20px;
+          color: #475569;
+          cursor: pointer;
+          padding: 4px;
+          transition: all 0.2s ease;
+        }
+        
+        .fav-btn.active {
+          color: #f59e0b;
+        }
+        
+        .view-button {
+          margin-top: 16px;
+          padding: 8px 16px;
+          background: rgba(226, 183, 20, 0.1);
+          border-radius: 8px;
+          color: #e2b714;
+          font-size: 14px;
+          text-align: center;
+        }
+        
+        .empty-state {
+          grid-column: 1 / -1;
+          text-align: center;
+          padding: 60px 20px;
+          color: #94a3b8;
+          font-size: 16px;
+        }
+        
+        /* Modals */
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.8);
+          backdrop-filter: blur(10px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+          padding: 20px;
+        }
+        
+        .capsule-modal {
+          background: rgba(15, 15, 25, 0.9);
+          border-radius: 20px;
+          border: 1px solid rgba(226, 183, 20, 0.2);
+          max-width: 90%;
+          max-height: 90%;
+          overflow: auto;
+          position: relative;
+        }
+        
+        .modal-close {
+          position: absolute;
+          top: 20px;
+          right: 20px;
+          background: rgba(30, 41, 59, 0.5);
+          border: 1px solid #334155;
+          border-radius: 50%;
+          width: 32px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          font-size: 20px;
+          color: #94a3b8;
+          transition: all 0.2s ease;
+          z-index: 1001;
+        }
+        
+        .modal-close:hover {
+          color: #e2b714;
+          border-color: #e2b714;
+        }
+        
+        .modal-content {
+          padding: 40px;
+          color: #f1f5f9;
+        }
+        
+        /* Modal de Edição de Perfil */
+        .profile-edit-modal {
+          max-width: 500px;
+          width: 90%;
+        }
+        
+        .profile-edit-modal .modal-content {
+          padding: 30px;
+        }
+        
+        /* Seção de Avatar */
+        .avatar-section {
+          margin-bottom: 25px;
+        }
+        
+        .avatar-preview-container {
+          display: flex;
+          align-items: center;
+          gap: 20px;
+          margin-bottom: 15px;
+        }
+        
+        .avatar-preview {
+          width: 100px;
+          height: 100px;
+          border-radius: 50%;
+          overflow: hidden;
+          border: 3px solid #e2b714;
+          background: #f1f5f9;
+          flex-shrink: 0;
+        }
+        
+        .avatar-image {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        
+        .avatar-actions {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          flex: 1;
+        }
+        
+        .btn-upload, .btn-random {
+          padding: 10px 15px;
+          border: none;
+          border-radius: 8px;
+          font-size: 14px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+        }
+        
+        .btn-upload {
+          background: #3b82f6;
+          color: white;
+        }
+        
+        .btn-upload:hover {
+          background: #2563eb;
+        }
+        
+        .btn-random {
+          background: #8b5cf6;
+          color: white;
+        }
+        
+        .btn-random:hover {
+          background: #7c3aed;
+        }
+        
+        .avatar-url-input {
+          margin-top: 15px;
+        }
+        
+        .avatar-url-input label {
+          display: block;
+          margin-bottom: 8px;
+          color: #64748b;
+          font-size: 14px;
+          font-weight: 500;
+        }
+        
+        .avatar-url-input input {
+          width: 100%;
+          padding: 10px 15px;
+          border: 1px solid #cbd5e1;
+          border-radius: 8px;
+          font-size: 14px;
+          transition: border-color 0.3s ease;
+          background: white;
+          color: #1e293b;
+        }
+        
+        .avatar-url-input input:focus {
+          outline: none;
+          border-color: #e2b714;
+        }
+        
+        /* Formulário */
+        .form-group {
+          margin-bottom: 20px;
+        }
+        
+        .form-group label {
+          display: block;
+          margin-bottom: 8px;
+          color: #cbd5e1;
+          font-weight: 500;
+          font-size: 14px;
+        }
+        
+        .form-group input,
+        .form-group textarea {
+          width: 100%;
+          padding: 12px 15px;
+          border: 1px solid #cbd5e1;
+          border-radius: 8px;
+          font-size: 14px;
+          transition: all 0.3s ease;
+          background: white;
+          color: #1e293b;
+        }
+        
+        .form-group input:focus,
+        .form-group textarea:focus {
+          outline: none;
+          border-color: #e2b714;
+          box-shadow: 0 0 0 3px rgba(226, 183, 20, 0.1);
+        }
+        
+        .form-group textarea {
+          resize: vertical;
+          min-height: 80px;
+        }
+        
+        .form-group small {
+          display: block;
+          margin-top: 5px;
+          color: #64748b;
+          font-size: 12px;
+        }
+        
+        .char-count {
+          text-align: right;
+          margin-top: 5px;
+          color: #64748b;
+          font-size: 12px;
+        }
+        
+        /* Ações do Formulário */
+        .form-actions {
+          display: flex;
+          gap: 12px;
+          margin-top: 30px;
+        }
+        
+        .chronicle-button {
+          flex: 1;
+          padding: 12px 20px;
+          background: linear-gradient(135deg, #e2b714 0%, #1f7a8c 100%);
+          border: none;
+          border-radius: 8px;
+          color: white;
+          font-size: 15px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+        }
+        
+        .chronicle-button:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 5px 15px rgba(226, 183, 20, 0.3);
+        }
+        
+        .chronicle-button:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+        
+        .btn-secondary {
+          flex: 1;
+          padding: 12px 20px;
+          background: #f1f5f9;
+          border: 1px solid #cbd5e1;
+          border-radius: 8px;
+          color: #475569;
+          font-size: 15px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+        
+        .btn-secondary:hover:not(:disabled) {
+          background: #e2e8f0;
+        }
+        
+        .btn-secondary:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+        
+        /* Spinner */
+        .spinner {
+          width: 16px;
+          height: 16px;
+          border: 2px solid rgba(255, 255, 255, 0.3);
+          border-radius: 50%;
+          border-top-color: white;
+          animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+        
+        /* Responsividade */
+        @media (max-width: 768px) {
+          .profile-avatar {
+            width: 120px;
+            height: 120px;
+            bottom: -60px;
+          }
+          
+          .profile-info {
+            padding: 70px 20px 20px;
+          }
+          
+          .profile-info h1 {
+            font-size: 24px;
+          }
+          
+          .profile-stats {
+            grid-template-columns: repeat(2, 1fr);
+          }
+          
+          .filter-controls {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+          
+          .filter-group, .sort-group {
+            width: 100%;
+          }
+          
+          .filter-buttons {
+            flex-wrap: wrap;
+          }
+          
+          .capsules-grid {
+            grid-template-columns: 1fr;
+          }
+          
+          .avatar-preview-container {
+            flex-direction: column;
+            text-align: center;
+          }
+          
+          .avatar-actions {
+            width: 100%;
+          }
+          
+          .form-actions {
+            flex-direction: column;
+          }
+        }
+        
+        @media (max-width: 480px) {
+          .profile-stats {
+            grid-template-columns: 1fr;
+          }
+          
+          .profile-meta {
+            flex-direction: column;
+            gap: 15px;
+          }
+        }
+      `}</style>
+    </>
   );
 }
 
-// Componente Modal para detalhe da cápsula
+// Componente Modal para detalhe da cápsula (mantido igual)
 function CapsuleDetailModal({ capsule, onClose }) {
   const { user } = useAuth();
   const [comments, setComments] = useState([]);
@@ -480,7 +1435,6 @@ function CapsuleDetailModal({ capsule, onClose }) {
       const saved = res.data.comment;
       setComments(prev => [saved, ...prev]);
       setNewComment('');
-      // optionally notify owner handled by backend
     } catch (error) {
       console.error('Error adding comment:', error);
     }
@@ -553,7 +1507,7 @@ function CapsuleDetailModal({ capsule, onClose }) {
                 className={`interaction-btn ${isLiked ? 'liked' : ''}`}
                 onClick={handleLike}
               >
-                <span className="icon">❤️</span>
+                <span className="icon"></span>
                 <span className="count">{likeCount}</span>
               </motion.button>
 

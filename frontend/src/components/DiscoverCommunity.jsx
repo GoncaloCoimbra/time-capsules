@@ -36,7 +36,7 @@ function DiscoverCommunity() {
             userId,
             username: capsule.User?.username || 'Usuário Anônimo',
             avatar: capsule.User?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`,
-            bio: capsule.User?.bio || '✨ Colecionador de cápsulas temporais',
+            bio: capsule.User?.bio || 'Colecionador de cápsulas temporais',
             capsules: []
           };
         }
@@ -87,7 +87,7 @@ function DiscoverCommunity() {
         className="discover-header"
       >
         <div className="header-content">
-          <h2>🌍 Explore a Comunidade</h2>
+          <h2> Explore a Comunidade</h2>
           <p>Descubra cápsulas temporais de outros usuários e conecte-se com exploradores do tempo</p>
         </div>
 
@@ -207,7 +207,7 @@ function DiscoverCommunity() {
         </motion.div>
       ) : (
         <div className="empty-state">
-          <p>😢 Nenhum explorador encontrado</p>
+          <p> Nenhum explorador encontrado</p>
           <p className="empty-subtext">Tente ajustar sua busca</p>
         </div>
       )}

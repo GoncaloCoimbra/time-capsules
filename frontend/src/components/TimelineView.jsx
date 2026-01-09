@@ -88,7 +88,7 @@ function TimelineView({ capsules = [], onCapsuleClick }) {
                     <div className="card-meta">
                       <span>📅 {format(new Date(capsule.unlockDate), 'dd MMM yyyy', { locale: ptBR })}</span>
                       {capsule.categoryId && <span>📁 Categoria</span>}
-                      {capsule.viewCount > 0 && <span>👁️ {capsule.viewCount} views</span>}
+                      {capsule.viewCount > 0 && <span> {capsule.viewCount} views</span>}
                     </div>
 
                     {hoveredId === capsule.id && (
@@ -179,7 +179,7 @@ function TimelineView({ capsules = [], onCapsuleClick }) {
           </div>
         </div>
         <div className="stat">
-          <span className="stat-icon">⏰</span>
+          <span className="stat-icon"></span>
           <div>
             <span className="stat-number">{Math.min(...sortedCapsules.map(c => getDaysUntilUnlock(c.unlockDate)).filter(d => d > 0)) || 0}</span>
             <span className="stat-label">Dias até próximo</span>

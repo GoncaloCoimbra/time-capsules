@@ -6,9 +6,9 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell,
   AreaChart, Area
 } from 'recharts';
-import { format, differenceInDays } from 'date-fns';
+import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
-import { capsuleAPI, categoryAPI, tagAPI, communityAPI, commentAPI, likeAPI, favoriteAPI, authAPI, notificationAPI } from '../services/capsuleService';
+import { capsuleAPI, categoryAPI, tagAPI, communityAPI, commentAPI, likeAPI, favoriteAPI, notificationAPI } from '../services/capsuleService';
 import TimelineView from '../components/TimelineView';
 import Achievements from '../components/Achievements';
 import DiscoverCommunity from '../components/DiscoverCommunity';
@@ -65,14 +65,6 @@ function Dashboard() {
   // Delete confirmation states
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [capsuleToDelete, setCapsuleToDelete] = useState(null);
-
-  // Profile edit states
-  const [showProfileEdit, setShowProfileEdit] = useState(false);
-  const [editUsername, setEditUsername] = useState('');
-  const [editAvatar, setEditAvatar] = useState('');
-  const [editBio, setEditBio] = useState('');
-  const [editPassword, setEditPassword] = useState('');
-  const [editPasswordConfirm, setEditPasswordConfirm] = useState('');
   
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -172,7 +164,6 @@ function Dashboard() {
         setLoading(false);
       } catch (error) {
         console.error('Error loading data:', error);
-        // Use fallback mock data on error
         setLoading(false);
       }
     };
@@ -375,33 +366,10 @@ function Dashboard() {
     setEditingId(null);
   };
 
-  const openEditProfile = () => {
-    setEditUsername(user?.username || '');
-    setEditAvatar(user?.avatar || '');
-    setEditBio(user?.bio || '');
-    setEditPassword('');
-    setEditPasswordConfirm('');
-    setShowProfileEdit(true);
-  };
-
-  const saveProfileEdits = async () => {
-    try {
-      if (editPassword && editPassword !== editPasswordConfirm) {
-        alert('Senhas não coincidem!');
-        return;
-      }
-
-      const payload = { username: editUsername, avatar: editAvatar, bio: editBio };
-      if (editPassword) payload.password = editPassword;
-
-      const res = await authAPI.updateProfile(payload);
-      // Update user context
-      localStorage.setItem('user', JSON.stringify(res.data.user));
-      window.location.reload(); // refresh to update context
-      setShowProfileEdit(false);
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      alert('Erro ao atualizar perfil');
+  // Nova função para navegação ao perfil
+  const goToUserProfile = () => {
+    if (user?.id) {
+      navigate(`/profile/${user.id}`);
     }
   };
 
@@ -566,7 +534,8 @@ function Dashboard() {
                 🔔 {notifications.filter(n => !n.read).length}
               </button>
             </div>
-            <div className="user-avatar" onClick={openEditProfile} style={{ cursor: 'pointer' }} title="Clique para editar perfil">
+            {/* Avatar modificado para navegar ao perfil */}
+            <div className="user-avatar" onClick={goToUserProfile} style={{ cursor: 'pointer' }} title="Clique para ver perfil">
               {user?.username?.substring(0, 2).toUpperCase() || 'US'}
             </div>
             <div className="user-details">
@@ -931,7 +900,7 @@ function Dashboard() {
                     </div>
                     
                     <div className="stat-card">
-                      <div className="stat-icon">👁️</div>
+                      <div className="stat-icon"></div>
                       <div className="stat-content">
                         <h3>{statistics.totalViews}</h3>
                         <p>Visualizações</p>
@@ -1503,6 +1472,12 @@ function Dashboard() {
           justify-content: center;
           font-weight: 600;
           font-size: 14px;
+          cursor: pointer;
+          transition: transform 0.3s ease;
+        }
+        
+        .user-avatar:hover {
+          transform: scale(1.05);
         }
         
         .user-details {
