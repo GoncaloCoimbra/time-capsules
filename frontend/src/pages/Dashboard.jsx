@@ -8,7 +8,7 @@ import {
 } from 'recharts';
 import { format, differenceInDays } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
-import { capsuleAPI, categoryAPI, tagAPI, communityAPI, commentAPI, likeAPI, favoriteAPI } from '../services/capsuleService';
+import { capsuleAPI, categoryAPI, tagAPI, communityAPI, commentAPI, likeAPI, favoriteAPI, authAPI, notificationAPI } from '../services/capsuleService';
 import TimelineView from '../components/TimelineView';
 import Achievements from '../components/Achievements';
 import DiscoverCommunity from '../components/DiscoverCommunity';
@@ -65,6 +65,14 @@ function Dashboard() {
   // Delete confirmation states
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [capsuleToDelete, setCapsuleToDelete] = useState(null);
+
+  // Profile edit states
+  const [showProfileEdit, setShowProfileEdit] = useState(false);
+  const [editUsername, setEditUsername] = useState('');
+  const [editAvatar, setEditAvatar] = useState('');
+  const [editBio, setEditBio] = useState('');
+  const [editPassword, setEditPassword] = useState('');
+  const [editPasswordConfirm, setEditPasswordConfirm] = useState('');
   
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -367,6 +375,36 @@ function Dashboard() {
     setEditingId(null);
   };
 
+  const openEditProfile = () => {
+    setEditUsername(user?.username || '');
+    setEditAvatar(user?.avatar || '');
+    setEditBio(user?.bio || '');
+    setEditPassword('');
+    setEditPasswordConfirm('');
+    setShowProfileEdit(true);
+  };
+
+  const saveProfileEdits = async () => {
+    try {
+      if (editPassword && editPassword !== editPasswordConfirm) {
+        alert('Senhas não coincidem!');
+        return;
+      }
+
+      const payload = { username: editUsername, avatar: editAvatar, bio: editBio };
+      if (editPassword) payload.password = editPassword;
+
+      const res = await authAPI.updateProfile(payload);
+      // Update user context
+      localStorage.setItem('user', JSON.stringify(res.data.user));
+      window.location.reload(); // refresh to update context
+      setShowProfileEdit(false);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      alert('Erro ao atualizar perfil');
+    }
+  };
+
   const handleLogout = () => {
     logout();
     navigate('/login');
@@ -528,7 +566,7 @@ function Dashboard() {
                 🔔 {notifications.filter(n => !n.read).length}
               </button>
             </div>
-            <div className="user-avatar">
+            <div className="user-avatar" onClick={openEditProfile} style={{ cursor: 'pointer' }} title="Clique para editar perfil">
               {user?.username?.substring(0, 2).toUpperCase() || 'US'}
             </div>
             <div className="user-details">
