@@ -180,7 +180,7 @@ function DiscoverCommunity() {
                           whileHover={{ scale: 1.1 }}
                         >
                           <span className="badge-status">
-                            {capsule.isUnlocked ? '🔓' : '🔒'}
+                            {capsule.isUnlocked ? '' : '🔒'}
                           </span>
                         </motion.div>
                       ))}

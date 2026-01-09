@@ -280,7 +280,7 @@ cd ../frontend
 npm test
 \\\
 
-## 📦 Building for Production
+##  Building for Production
 
 ### Backend
 \\\bash

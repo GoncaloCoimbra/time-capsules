@@ -77,7 +77,7 @@ function TimelineView({ capsules = [], onCapsuleClick }) {
                       />
                       <h3>{capsule.title}</h3>
                       <span className={`status-badge ${status}`}>
-                        {status === 'unlocked' ? '🔓 Desbloqueado' : `🔒 ${daysLeft}d`}
+                        {status === 'unlocked' ? ' Desbloqueado' : `🔒 ${daysLeft}d`}
                       </span>
                     </div>
 
@@ -145,7 +145,7 @@ function TimelineView({ capsules = [], onCapsuleClick }) {
                       <h4>{capsule.title}</h4>
                       <p>{format(new Date(capsule.unlockDate), 'dd MMM yyyy', { locale: ptBR })}</p>
                       <span className={`badge ${status}`}>
-                        {status === 'unlocked' ? '🔓' : `🔒 ${daysLeft}d`}
+                        {status === 'unlocked' ? '' : `🔒 ${daysLeft}d`}
                       </span>
                     </motion.div>
                   )}
@@ -158,7 +158,7 @@ function TimelineView({ capsules = [], onCapsuleClick }) {
 
       <div className="timeline-stats">
         <div className="stat">
-          <span className="stat-icon">📦</span>
+          <span className="stat-icon"></span>
           <div>
             <span className="stat-number">{sortedCapsules.length}</span>
             <span className="stat-label">Total de Cápsulas</span>
@@ -172,7 +172,7 @@ function TimelineView({ capsules = [], onCapsuleClick }) {
           </div>
         </div>
         <div className="stat">
-          <span className="stat-icon">🔓</span>
+          <span className="stat-icon"></span>
           <div>
             <span className="stat-number">{sortedCapsules.filter(c => getUnlockStatus(c.unlockDate) === 'unlocked').length}</span>
             <span className="stat-label">Desbloqueadas</span>

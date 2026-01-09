@@ -51,7 +51,7 @@ function Achievements({ capsules = [], statistics = null }) {
       id: 5,
       name: 'Desbloqueador',
       description: 'Tenha 5 cápsulas desbloqueadas',
-      icon: '🔓',
+      icon: '',
       condition: () => {
         const unlocked = capsules.filter(c => c.isUnlocked);
         return unlocked.length >= 5;
