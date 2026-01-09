@@ -72,3 +72,27 @@ exports.login = async (req, res) => {
     res.status(500).json({ message: 'Error logging in', error: error.message });
   }
 };
+
+exports.updateProfile = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { username, avatar, bio, password } = req.body;
+
+    const user = await User.findByPk(userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    if (username) user.username = username;
+    if (avatar) user.avatar = avatar;
+    if (bio) user.bio = bio;
+    if (password) {
+      const bcrypt = require('bcryptjs');
+      user.password = await bcrypt.hash(password, 10);
+    }
+
+    await user.save();
+
+    res.json({ message: 'Profile updated', user: { id: user.id, username: user.username, email: user.email, avatar: user.avatar, bio: user.bio } });
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating profile', error: error.message });
+  }
+};

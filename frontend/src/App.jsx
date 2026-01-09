@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import UserProfile from './pages/UserProfile';
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
@@ -25,6 +26,10 @@ function App() {
                 <Dashboard />
               </PrivateRoute>
             }
+          />
+          <Route 
+            path='/profile/:userId' 
+            element={<UserProfile />} 
           />
           <Route path='/' element={<Navigate to='/dashboard' />} />
         </Routes>

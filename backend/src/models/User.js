@@ -12,6 +12,14 @@ const User = sequelize.define('User', {
     allowNull: false,
     unique: true
   },
+  avatar: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  bio: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
   email: {
     type: DataTypes.STRING,
     allowNull: false,

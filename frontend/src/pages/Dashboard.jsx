@@ -8,6 +8,10 @@ import {
 } from 'recharts';
 import { format, differenceInDays } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
+import { capsuleAPI, categoryAPI, tagAPI, communityAPI, commentAPI, likeAPI, favoriteAPI } from '../services/capsuleService';
+import TimelineView from '../components/TimelineView';
+import Achievements from '../components/Achievements';
+import DiscoverCommunity from '../components/DiscoverCommunity';
 
 function Dashboard() {
   const [capsules, setCapsules] = useState([]);
@@ -115,115 +119,57 @@ function Dashboard() {
     };
   }, []);
 
-  // Mock data
+  // Load data from API
   useEffect(() => {
-    const mockCapsules = [
-      {
-        id: 1,
-        title: 'Web3 Predictions 2025',
-        content: 'I predict that by 2025, decentralized applications will handle 50% of all financial transactions globally.',
-        unlockDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-        isUnlocked: false,
-        isFavorite: true,
-        isPrivate: false,
-        viewCount: 45,
-        color: '#e2b714',
-        category: { id: 1, name: 'Predictions', color: '#e2b714' },
-        tags: [{ id: 1, name: 'Blockchain' }, { id: 2, name: 'Future' }],
-        techStack: ['Web3', 'Solidity', 'Ethereum'],
-        likes: 12,
-        comments: [],
-        metadata: {
-          author: 'tech_visionary',
-          authorAvatar: 'TV'
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        
+        // Load user's capsules
+        const capsulesRes = await capsuleAPI.getAll();
+        setCapsules(capsulesRes.data.capsules || []);
+        
+        // Load categories
+        const categoriesRes = await categoryAPI.getAll();
+        setCategories(categoriesRes.data.categories || []);
+        
+        // Load tags
+        const tagsRes = await tagAPI.getAll();
+        setTags(tagsRes.data.tags || []);
+        
+        // Load statistics
+        const statsRes = await capsuleAPI.getStatistics();
+        setStatistics(statsRes.data.statistics);
+        
+        // Load community stats
+        const communityStatsRes = await communityAPI.getStats();
+        setCommunityStats(communityStatsRes.data);
+        
+        // Load leaderboard
+        const leaderboardRes = await communityAPI.getLeaderboard({ type: 'capsules' });
+        setLeaderboard(leaderboardRes.data.leaderboard || []);
+        
+        // Load trending techs
+        const trendingRes = await communityAPI.getTrendingTechs();
+        setTrendingTech(trendingRes.data.trending || []);
+
+        // Load notifications
+        try {
+          const notifRes = await notificationAPI.list();
+          setNotifications(notifRes.data.notifications || []);
+        } catch (err) {
+          // ignore
         }
-      },
-      {
-        id: 2,
-        title: 'AI Development Insights',
-        content: 'Current AI models will evolve into autonomous development agents capable of writing production-ready code.',
-        unlockDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-        createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-        isUnlocked: true,
-        isFavorite: false,
-        isPrivate: true,
-        viewCount: 128,
-        color: '#1f7a8c',
-        category: { id: 2, name: 'Technology', color: '#1f7a8c' },
-        tags: [{ id: 3, name: 'AI' }, { id: 4, name: 'Machine Learning' }],
-        techStack: ['Python', 'TensorFlow', 'PyTorch'],
-        likes: 28,
-        comments: [
-          { id: 1, author: 'ai_researcher', text: 'Interesting perspective!', createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString() }
-        ],
-        metadata: {
-          author: 'ai_researcher',
-          authorAvatar: 'AI'
-        }
+        
+        setLoading(false);
+      } catch (error) {
+        console.error('Error loading data:', error);
+        // Use fallback mock data on error
+        setLoading(false);
       }
-    ];
-
-    const mockCategories = [
-      { id: 1, name: 'Predictions', color: '#e2b714' },
-      { id: 2, name: 'Technology', color: '#1f7a8c' },
-      { id: 3, name: 'Science', color: '#8b5cf6' },
-      { id: 4, name: 'Career', color: '#f59e0b' }
-    ];
-
-    const mockTags = [
-      { id: 1, name: 'Blockchain' },
-      { id: 2, name: 'Future' },
-      { id: 3, name: 'AI' },
-      { id: 4, name: 'Machine Learning' }
-    ];
-
-    const mockStatistics = {
-      totalCapsules: 12,
-      lockedCapsules: 8,
-      unlockedCapsules: 4,
-      totalViews: 456,
-      favoritesCount: 5,
-      publicCapsules: 7,
-      capsulesByMonth: [
-        { month: 'Jan', count: 2 },
-        { month: 'Feb', count: 3 },
-        { month: 'Mar', count: 1 },
-        { month: 'Apr', count: 4 },
-        { month: 'May', count: 2 }
-      ],
-      capsulesByCategory: [
-        { name: 'Predictions', value: 4, color: '#e2b714' },
-        { name: 'Technology', value: 5, color: '#1f7a8c' },
-        { name: 'Science', value: 2, color: '#8b5cf6' },
-        { name: 'Career', value: 1, color: '#f59e0b' }
-      ]
     };
-
-    setCapsules(mockCapsules);
-    setCategories(mockCategories);
-    setTags(mockTags);
-    setStatistics(mockStatistics);
-    setCommunityStats({
-      totalUsers: 15432,
-      capsulesUnlockedToday: 287,
-      trendingTopics: ['Web3', 'AI Agents', 'Quantum Computing'],
-      activeDevelopers: 3245
-    });
-    setTrendingTech([
-      { name: 'WebAssembly', mentions: 342, growth: 45 },
-      { name: 'Rust', mentions: 287, growth: 32 },
-      { name: 'Edge Computing', mentions: 198, growth: 28 }
-    ]);
-    setLeaderboard([
-      { id: 1, username: 'time_traveler', capsules: 156, unlocked: 42 },
-      { id: 2, username: 'code_prophet', capsules: 128, unlocked: 38 },
-      { id: 3, username: 'future_dev', capsules: 112, unlocked: 35 }
-    ]);
-    setAchievements([
-      { id: 1, name: 'Time Traveler', description: 'Create 10 future capsules', unlocked: true, icon: 'TT' },
-      { id: 2, name: 'Code Prophet', description: 'Make 5 correct tech predictions', unlocked: true, icon: 'CP' }
-    ]);
+    
+    loadData();
   }, []);
 
   useEffect(() => {
@@ -258,34 +204,26 @@ function Dashboard() {
     setLoading(true);
     
     try {
-      const newCapsule = {
-        id: editingId || Date.now(),
+      const capsuleData = {
         title,
         content,
         unlockDate,
-        createdAt: new Date().toISOString(),
-        isUnlocked: false,
-        isFavorite: false,
+        categoryId: categoryId || null,
         isPrivate,
-        viewCount: 0,
         color,
-        category: categories.find(c => c.id === parseInt(categoryId)),
-        tags: tags.filter(t => selectedTags.includes(t.id)),
-        techStack,
-        codeSnippet,
-        likes: 0,
-        comments: [],
-        metadata: {
-          author: user?.username || 'user',
-          authorAvatar: (user?.username || 'US').substring(0, 2).toUpperCase()
-        }
+        reminder,
+        tags: selectedTags
       };
 
       if (editingId) {
-        setCapsules(prev => prev.map(c => c.id === editingId ? newCapsule : c));
+        await capsuleAPI.update(editingId, capsuleData);
       } else {
-        setCapsules(prev => [...prev, newCapsule]);
+        await capsuleAPI.create(capsuleData);
       }
+      
+      // Reload capsules
+      const res = await capsuleAPI.getAll();
+      setCapsules(res.data.capsules || []);
       
       resetForm();
     } catch (error) {
@@ -295,27 +233,30 @@ function Dashboard() {
     }
   };
 
-  const handleCategorySubmit = (e) => {
+  const handleCategorySubmit = async (e) => {
     e.preventDefault();
-    const newCategory = {
-      id: Date.now(),
-      name: categoryName,
-      color: categoryColor
-    };
-    setCategories(prev => [...prev, newCategory]);
-    setCategoryName('');
-    setShowCategoryForm(false);
+    try {
+      await categoryAPI.create({ name: categoryName, color: categoryColor });
+      const res = await categoryAPI.getAll();
+      setCategories(res.data.categories || []);
+      setCategoryName('');
+      setShowCategoryForm(false);
+    } catch (error) {
+      console.error('Error creating category:', error);
+    }
   };
 
-  const handleTagSubmit = (e) => {
+  const handleTagSubmit = async (e) => {
     e.preventDefault();
-    const newTag = {
-      id: Date.now(),
-      name: tagName
-    };
-    setTags(prev => [...prev, newTag]);
-    setTagName('');
-    setShowTagForm(false);
+    try {
+      await tagAPI.create({ name: tagName });
+      const res = await tagAPI.getAll();
+      setTags(res.data.tags || []);
+      setTagName('');
+      setShowTagForm(false);
+    } catch (error) {
+      console.error('Error creating tag:', error);
+    }
   };
 
   const handleEdit = (capsule) => {
@@ -344,38 +285,61 @@ function Dashboard() {
     if (selectedCapsule?.id === capsuleId) setSelectedCapsule(null);
   };
 
-  const toggleFavorite = (id) => {
-    setCapsules(prev => prev.map(c => 
-      c.id === id ? { ...c, isFavorite: !c.isFavorite } : c
-    ));
+  const toggleFavorite = async (id) => {
+    try {
+      // optimistic UI
+      setCapsules(prev => prev.map(c => 
+        c.id === id ? { ...c, isFavorited: !c.isFavorited } : c
+      ));
+
+      const res = await favoriteAPI.toggle(id);
+      const fav = res.data.favorited;
+
+      setCapsules(prev => prev.map(c => 
+        c.id === id ? { ...c, isFavorited: fav } : c
+      ));
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      // revert optimistic change
+      setCapsules(prev => prev.map(c => 
+        c.id === id ? { ...c, isFavorited: !(c.isFavorited) } : c
+      ));
+    }
   };
 
-  const addComment = (capsuleId, text) => {
+  const addComment = async (capsuleId, text) => {
     if (!text.trim()) return;
-    const newComment = {
-      id: Date.now(),
-      author: user?.username || 'user',
-      text,
-      createdAt: new Date().toISOString()
-    };
-    setCapsules(prev => prev.map(c => 
-      c.id === capsuleId 
-        ? { 
-            ...c, 
-            comments: [...(c.comments || []), newComment],
-            viewCount: c.viewCount + 1 
-          }
-        : c
-    ));
-    setCommentText('');
+    try {
+      const res = await commentAPI.add(capsuleId, { content: text });
+      const saved = res.data.comment;
+      setCapsules(prev => prev.map(c => 
+        c.id === capsuleId 
+          ? { 
+              ...c, 
+              comments: [...(c.comments || []), saved],
+              viewCount: (c.viewCount || 0) + 1 
+            }
+          : c
+      ));
+      setCommentText('');
+    } catch (error) {
+      console.error('Error adding comment:', error);
+    }
   };
 
-  const toggleLike = (capsuleId) => {
-    setCapsules(prev => prev.map(c => 
-      c.id === capsuleId 
-        ? { ...c, likes: (c.likes || 0) + 1, viewCount: c.viewCount + 1 }
-        : c
-    ));
+  const toggleLike = async (capsuleId) => {
+    try {
+      await likeAPI.toggle(capsuleId);
+      const countRes = await likeAPI.getCount(capsuleId);
+      const count = countRes.data.count || 0;
+      setCapsules(prev => prev.map(c => 
+        c.id === capsuleId 
+          ? { ...c, likes: count, viewCount: (c.viewCount || 0) + 1 }
+          : c
+      ));
+    } catch (error) {
+      console.error('Error toggling like:', error);
+    }
   };
 
   const performTimeTravel = () => {
@@ -559,6 +523,11 @@ function Dashboard() {
           </div>
           
           <div className="user-info">
+            <div className="notifications">
+              <button className="notif-btn" onClick={() => setActiveTab('notifications')}>
+                🔔 {notifications.filter(n => !n.read).length}
+              </button>
+            </div>
             <div className="user-avatar">
               {user?.username?.substring(0, 2).toUpperCase() || 'US'}
             </div>
@@ -607,7 +576,17 @@ function Dashboard() {
               <svg className="nav-icon" viewBox="0 0 24 24">
                 <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>
               </svg>
-              <span>Time Travel</span>
+              <span>Viagem Temporal</span>
+            </button>
+
+            <button 
+              className={`nav-item ${activeTab === 'timeline' ? 'active' : ''}`}
+              onClick={() => setActiveTab('timeline')}
+            >
+              <svg className="nav-icon" viewBox="0 0 24 24">
+                <path d="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"/>
+              </svg>
+              <span>Timeline</span>
             </button>
             
             <button 
@@ -618,6 +597,26 @@ function Dashboard() {
                 <path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/>
               </svg>
               <span>Trending</span>
+            </button>
+
+            <button 
+              className={`nav-item ${activeTab === 'achievements' ? 'active' : ''}`}
+              onClick={() => setActiveTab('achievements')}
+            >
+              <svg className="nav-icon" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+              </svg>
+              <span>Achievements</span>
+            </button>
+
+            <button 
+              className={`nav-item ${activeTab === 'community' ? 'active' : ''}`}
+              onClick={() => setActiveTab('community')}
+            >
+              <svg className="nav-icon" viewBox="0 0 24 24">
+                <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+              </svg>
+              <span>Comunidade</span>
             </button>
           </nav>
           
@@ -769,9 +768,9 @@ function Dashboard() {
                       </div>
                       <button
                         onClick={(e) => { e.stopPropagation(); toggleFavorite(capsule.id); }}
-                        className={`favorite-btn ${capsule.isFavorite ? 'active' : ''}`}
+                        className={`favorite-btn ${(capsule.isFavorited || capsule.isFavorite) ? 'active' : ''}`}
                       >
-                        {capsule.isFavorite ? '★' : '☆'}
+                        {(capsule.isFavorited || capsule.isFavorite) ? '★' : '☆'}
                       </button>
                     </div>
                     
@@ -835,8 +834,30 @@ function Dashboard() {
             </motion.div>
           )}
           
+          {/* Notifications */}
+          {activeTab === 'notifications' && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="chronicle-card main-card">
+              <h2>Notificações</h2>
+              {notifications.length === 0 && <p>Sem notificações</p>}
+              <ul className="notifications-list">
+                {notifications.map(n => (
+                  <li key={n.id} className={`notification-item ${n.read ? 'read' : 'unread'}`}>
+                    <div className="notif-body">
+                      <strong>{n.type}</strong>
+                      <span className="notif-meta">{n.createdAt ? new Date(n.createdAt).toLocaleString() : ''}</span>
+                      <p>{n.meta?.text || ''}</p>
+                    </div>
+                    <div className="notif-actions">
+                      {!n.read && <button onClick={async () => { try { await notificationAPI.markRead(n.id); setNotifications(prev => prev.map(p => p.id === n.id ? { ...p, read: true } : p)); } catch (err) {} }}>Marcar lida</button>}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </motion.div>
+          )}
+
           {/* Estatísticas */}
-          {activeTab === 'statistics' && statistics && (
+          {activeTab === 'statistics' && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -844,83 +865,95 @@ function Dashboard() {
             >
               <h2>Estatísticas Temporais</h2>
               
-              <div className="stats-grid">
-                <div className="stat-card">
-                  <div className="stat-icon">📊</div>
-                  <div className="stat-content">
-                    <h3>{statistics.totalCapsules}</h3>
-                    <p>Cápsulas Totais</p>
+              {statistics ? (
+                <>
+                  <div className="stats-grid">
+                    <div className="stat-card">
+                      <div className="stat-icon">📊</div>
+                      <div className="stat-content">
+                        <h3>{statistics.totalCapsules}</h3>
+                        <p>Cápsulas Totais</p>
+                      </div>
+                    </div>
+                    
+                    <div className="stat-card">
+                      <div className="stat-icon">🔒</div>
+                      <div className="stat-content">
+                        <h3>{statistics.lockedCapsules}</h3>
+                        <p>Bloqueadas</p>
+                      </div>
+                    </div>
+                    
+                    <div className="stat-card">
+                      <div className="stat-icon">🔓</div>
+                      <div className="stat-content">
+                        <h3>{statistics.unlockedCapsules}</h3>
+                        <p>Desbloqueadas</p>
+                      </div>
+                    </div>
+                    
+                    <div className="stat-card">
+                      <div className="stat-icon">👁️</div>
+                      <div className="stat-content">
+                        <h3>{statistics.totalViews}</h3>
+                        <p>Visualizações</p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                
-                <div className="stat-card">
-                  <div className="stat-icon">🔒</div>
-                  <div className="stat-content">
-                    <h3>{statistics.lockedCapsules}</h3>
-                    <p>Bloqueadas</p>
+                  
+                  <div className="charts-container">
+                    {statistics.capsulesByMonth && statistics.capsulesByMonth.length > 0 && (
+                      <div className="chart-card">
+                        <h3>Atividade Mensal</h3>
+                        <ResponsiveContainer width="100%" height={200}>
+                          <AreaChart data={statistics.capsulesByMonth}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                            <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} />
+                            <YAxis stroke="#94a3b8" fontSize={12} />
+                            <Tooltip />
+                            <Area 
+                              type="monotone" 
+                              dataKey="count" 
+                              stroke="#e2b714" 
+                              fill="#e2b714" 
+                              fillOpacity={0.2} 
+                            />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
+                    
+                    {statistics.capsulesByCategory && statistics.capsulesByCategory.length > 0 && (
+                      <div className="chart-card">
+                        <h3>Distribuição por Categoria</h3>
+                        <ResponsiveContainer width="100%" height={200}>
+                          <PieChart>
+                            <Pie
+                              data={statistics.capsulesByCategory}
+                              cx="50%"
+                              cy="50%"
+                              labelLine={false}
+                              label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                              outerRadius={80}
+                              fill="#8884d8"
+                              dataKey="value"
+                            >
+                              {statistics.capsulesByCategory.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.color} />
+                              ))}
+                            </Pie>
+                            <Tooltip />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
                   </div>
+                </>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
+                  <p>Carregando estatísticas...</p>
                 </div>
-                
-                <div className="stat-card">
-                  <div className="stat-icon">🔓</div>
-                  <div className="stat-content">
-                    <h3>{statistics.unlockedCapsules}</h3>
-                    <p>Desbloqueadas</p>
-                  </div>
-                </div>
-                
-                <div className="stat-card">
-                  <div className="stat-icon">👁️</div>
-                  <div className="stat-content">
-                    <h3>{statistics.totalViews}</h3>
-                    <p>Visualizações</p>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="charts-container">
-                <div className="chart-card">
-                  <h3>Atividade Mensal</h3>
-                  <ResponsiveContainer width="100%" height={200}>
-                    <AreaChart data={statistics.capsulesByMonth}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                      <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} />
-                      <YAxis stroke="#94a3b8" fontSize={12} />
-                      <Tooltip />
-                      <Area 
-                        type="monotone" 
-                        dataKey="count" 
-                        stroke="#e2b714" 
-                        fill="#e2b714" 
-                        fillOpacity={0.2} 
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-                
-                <div className="chart-card">
-                  <h3>Distribuição por Categoria</h3>
-                  <ResponsiveContainer width="100%" height={200}>
-                    <PieChart>
-                      <Pie
-                        data={statistics.capsulesByCategory}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        {statistics.capsulesByCategory.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
+              )}
             </motion.div>
           )}
           
@@ -969,6 +1002,30 @@ function Dashboard() {
                 </div>
               )}
             </motion.div>
+          )}
+          
+          {/* Timeline */}
+          {activeTab === 'timeline' && (
+            <TimelineView 
+              capsules={capsules} 
+              onCapsuleClick={(capsule) => {
+                setSelectedCapsule(capsule);
+                setActiveTab('detail');
+              }}
+            />
+          )}
+
+          {/* Achievements */}
+          {activeTab === 'achievements' && (
+            <Achievements 
+              capsules={capsules}
+              statistics={statistics}
+            />
+          )}
+
+          {/* Community */}
+          {activeTab === 'community' && (
+            <DiscoverCommunity />
           )}
           
           {/* Trending */}

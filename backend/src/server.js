@@ -24,14 +24,17 @@ app.use('/api/capsules', require('./routes/capsuleRoutes'));
 app.use('/api/categories', require('./routes/categoryRoutes'));
 app.use('/api/tags', require('./routes/tagRoutes'));
 app.use('/api/templates', require('./routes/templateRoutes'));
+app.use('/api/comments', require('./routes/commentRoutes'));
+app.use('/api/likes', require('./routes/likeRoutes'));
+app.use('/api/community', require('./routes/communityRoutes'));
 
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
     message: 'Backend is running',
     timestamp: new Date().toISOString(),
-    version: '3.0.0',
-    features: ['templates', 'audit-logs', 'compression', 'enhanced-security']
+    version: '4.0.0',
+    features: ['community', 'comments', 'likes', 'leaderboard', 'templates', 'audit-logs', 'compression', 'enhanced-security']
   });
 });
 
@@ -51,12 +54,49 @@ const Tag = require('./models/Tag');
 const CapsuleTag = require('./models/CapsuleTag');
 const Template = require('./models/Template');
 const AuditLog = require('./models/AuditLog');
+const Comment = require('./models/Comment');
+const Like = require('./models/Like');
+const CapsuleView = require('./models/CapsuleView');
+const Favorite = require('./models/Favorite');
+const User = require('./models/User');
+const Follow = require('./models/Follow');
+const Notification = require('./models/Notification');
 
 Capsule.belongsTo(Category, { foreignKey: 'categoryId', as: 'category' });
 Category.hasMany(Capsule, { foreignKey: 'categoryId', as: 'capsules' });
 
 Capsule.belongsToMany(Tag, { through: CapsuleTag, foreignKey: 'capsuleId', as: 'tags' });
 Tag.belongsToMany(Capsule, { through: CapsuleTag, foreignKey: 'tagId', as: 'capsules' });
+
+// Social features
+Capsule.hasMany(Comment, { foreignKey: 'capsuleId', as: 'comments' });
+Comment.belongsTo(Capsule, { foreignKey: 'capsuleId' });
+
+Capsule.hasMany(Like, { foreignKey: 'capsuleId', as: 'likes' });
+Like.belongsTo(Capsule, { foreignKey: 'capsuleId' });
+
+Capsule.hasMany(CapsuleView, { foreignKey: 'capsuleId', as: 'views' });
+CapsuleView.belongsTo(Capsule, { foreignKey: 'capsuleId' });
+
+// Favorites
+Capsule.hasMany(Favorite, { foreignKey: 'capsuleId', as: 'favorites' });
+Favorite.belongsTo(Capsule, { foreignKey: 'capsuleId' });
+
+User.hasMany(Favorite, { foreignKey: 'userId', as: 'favorites' });
+Favorite.belongsTo(User, { foreignKey: 'userId' });
+
+app.use('/api/favorites', require('./routes/favoriteRoutes'));
+app.use('/api/follow', require('./routes/followRoutes'));
+app.use('/api/notifications', require('./routes/notificationRoutes'));
+
+// Follow associations
+User.hasMany(Follow, { foreignKey: 'followerId', as: 'following' });
+User.hasMany(Follow, { foreignKey: 'followingId', as: 'followers' });
+
+// Notifications
+User.hasMany(Notification, { foreignKey: 'userId', as: 'notifications' });
+Notification.belongsTo(User, { foreignKey: 'userId' });
+
 
 connectDB().then(() => {
   app.listen(PORT, () => {
