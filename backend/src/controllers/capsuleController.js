@@ -2,6 +2,12 @@
 const Category = require('../models/Category');
 const Tag = require('../models/Tag');
 const CapsuleTag = require('../models/CapsuleTag');
+const Comment = require('../models/Comment');
+const Like = require('../models/Like');
+const Favorite = require('../models/Favorite');
+const CapsuleView = require('../models/CapsuleView');
+const Notification = require('../models/Notification');
+const sequelize = require('../models/index');
 const { Op } = require('sequelize');
 
 exports.createCapsule = async (req, res) => {
@@ -72,6 +78,12 @@ exports.getCapsules = async (req, res) => {
         as: 'tags',
         through: { attributes: [] },
         required: false
+      },
+      {
+        model: require('../models/User'),
+        as: 'creator',
+        attributes: ['id', 'username', 'avatar'],
+        required: false
       }
     ];
 
@@ -80,10 +92,20 @@ exports.getCapsules = async (req, res) => {
       include[1].required = true;
     }
 
-    const capsules = await Capsule.findAll({
+    // Fetch and attach metadata used by the frontend
+    const capsulesRaw = await Capsule.findAll({
       where,
       include,
       order: [['createdAt', 'DESC']]
+    });
+
+    const capsules = capsulesRaw.map(c => {
+      const obj = c.toJSON();
+      obj.metadata = {
+        author: obj.creator?.username || 'Você',
+        authorAvatar: obj.creator?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${obj.creator?.id || obj.creatorId}`
+      };
+      return obj;
     });
 
     res.json({ capsules });
@@ -209,21 +231,25 @@ exports.toggleFavorite = async (req, res) => {
 
 exports.deleteCapsule = async (req, res) => {
   try {
-    await CapsuleTag.destroy({ where: { capsuleId: req.params.id } });
-    
-    const deleted = await Capsule.destroy({
-      where: {
-        id: req.params.id,
-        creatorId: req.user.userId
-      }
-    });
+    // Ensure capsule exists and belongs to user
+    const capsule = await Capsule.findOne({ where: { id: req.params.id, creatorId: req.user.userId } });
+    if (!capsule) return res.status(404).json({ message: 'Capsule not found' });
 
-    if (!deleted) {
-      return res.status(404).json({ message: 'Capsule not found' });
-    }
+    await sequelize.transaction(async (t) => {
+      // Remove many-to-many, comments, likes, favorites, views, notifications
+      await CapsuleTag.destroy({ where: { capsuleId: req.params.id }, transaction: t });
+      await Comment.destroy({ where: { capsuleId: req.params.id }, transaction: t });
+      await Like.destroy({ where: { capsuleId: req.params.id }, transaction: t });
+      await Favorite.destroy({ where: { capsuleId: req.params.id }, transaction: t });
+      await CapsuleView.destroy({ where: { capsuleId: req.params.id }, transaction: t });
+      await Notification.destroy({ where: { capsuleId: req.params.id }, transaction: t }).catch(() => {});
+
+      await Capsule.destroy({ where: { id: req.params.id, creatorId: req.user.userId }, transaction: t });
+    });
 
     res.json({ message: 'Capsule deleted successfully' });
   } catch (error) {
+    console.error('Error deleting capsule:', error);
     res.status(500).json({ message: 'Error deleting capsule', error: error.message });
   }
 };

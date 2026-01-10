@@ -68,6 +68,10 @@ Category.hasMany(Capsule, { foreignKey: 'categoryId', as: 'capsules' });
 Capsule.belongsToMany(Tag, { through: CapsuleTag, foreignKey: 'capsuleId', as: 'tags' });
 Tag.belongsToMany(Capsule, { through: CapsuleTag, foreignKey: 'tagId', as: 'capsules' });
 
+// Creator / User
+Capsule.belongsTo(User, { foreignKey: 'creatorId', as: 'creator' });
+User.hasMany(Capsule, { foreignKey: 'creatorId', as: 'capsules' });
+
 // Social features
 Capsule.hasMany(Comment, { foreignKey: 'capsuleId', as: 'comments' });
 Comment.belongsTo(Capsule, { foreignKey: 'capsuleId' });

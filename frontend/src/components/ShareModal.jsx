@@ -84,7 +84,7 @@ function ShareModal({ capsule, onClose, onShare }) {
               className={`share-tab ${shareType === 'email' ? 'active' : ''}`}
               onClick={() => setShareType('email')}
             >
-              ✉️ Email
+               Email
             </button>
           </div>
 
@@ -239,7 +239,7 @@ function ShareModal({ capsule, onClose, onShare }) {
 
         <div className="share-footer">
           <p className="privacy-note">
-            🔒 Apenas você pode gerenciar quem vê esta cápsula
+             Apenas você pode gerenciar quem vê esta cápsula
           </p>
         </div>
       </motion.div>

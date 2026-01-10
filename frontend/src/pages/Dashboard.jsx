@@ -12,7 +12,7 @@ import { capsuleAPI, categoryAPI, tagAPI, communityAPI, commentAPI, likeAPI, fav
 import TimelineView from '../components/TimelineView';
 import Achievements from '../components/Achievements';
 import DiscoverCommunity from '../components/DiscoverCommunity';
-import './Dashboard.css';
+import './Dashboard.css'; 
 
 function Dashboard() {
   const [capsules, setCapsules] = useState([]);
@@ -278,11 +278,30 @@ function Dashboard() {
     setShowDeleteConfirm(true);
   };
 
-  const handleDelete = (capsuleId) => {
-    setCapsules(prev => prev.filter(c => c.id !== capsuleId));
-    setShowDeleteConfirm(false);
-    setCapsuleToDelete(null);
-    if (selectedCapsule?.id === capsuleId) setSelectedCapsule(null);
+  const handleDelete = async (capsuleId) => {
+    setLoading(true);
+    try {
+      await capsuleAPI.delete(capsuleId);
+      // reload capsules and statistics to keep UI consistent with server
+      const [capsRes, statsRes] = await Promise.all([
+        capsuleAPI.getAll(),
+        capsuleAPI.getStatistics()
+      ]);
+      setCapsules(capsRes.data.capsules || []);
+      setStatistics(statsRes.data.statistics);
+      setShowDeleteConfirm(false);
+      setCapsuleToDelete(null);
+      if (selectedCapsule?.id === capsuleId) setSelectedCapsule(null);
+    } catch (error) {
+      console.error('Error deleting capsule:', error);
+      const message = (error?.response?.data?.message) || error?.message || 'Erro ao excluir a cápsula. Tente novamente.';
+      alert(message);
+      if (error?.response?.status === 401) {
+        navigate('/login');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const toggleFavorite = async (id) => {
@@ -504,16 +523,15 @@ function Dashboard() {
       
       {/* Header */}
       <div className="dashboard-header">
-        <div className="header-left">
-          <div className="time-glyph">
+        <div className="header-left">  <div className="time-glyph"> 
             <div className="glyph-circle">
               <div className="glyph-hand hour"></div>
               <div className="glyph-hand minute"></div>
             </div>
           </div>
           <div className="header-text">
-            <h1 className="chronicle-title">Time Chronicle</h1>
-            <p className="chronicle-subtitle">Dashboard Temporal</p>
+            <h1 className="chronicle-title">Time Chronicle</h1>  
+            <p className="chronicle-subtitle">Dashboard Temporal</p>  vou ensinar como por o logo
           </div>
         </div>
         
@@ -527,7 +545,7 @@ function Dashboard() {
                 month: 'long'
               })}
             </div>
-          </div>
+          </div> 
           
           <div className="user-info">
             <div className="notifications">
@@ -722,16 +740,25 @@ function Dashboard() {
                       
                       <div className="form-group">
                         <label>Categoria</label>
-                        <select
-                          value={categoryId}
-                          onChange={(e) => setCategoryId(e.target.value)}
-                          className="chronicle-input"
-                        >
-                          <option value="">Selecione...</option>
-                          {categories.map(cat => (
-                            <option key={cat.id} value={cat.id}>{cat.name}</option>
-                          ))}
-                        </select>
+                        {categories.length === 0 ? (
+                          <div className="no-categories">
+                            <small>Nenhuma categoria encontrada. <button type="button" className="link-btn" onClick={() => setShowCategoryForm(true)}>Criar categoria</button></small>
+                            <select disabled className="chronicle-input">
+                              <option>— Nenhuma disponível —</option>
+                            </select>
+                          </div>
+                        ) : (
+                          <select
+                            value={categoryId}
+                            onChange={(e) => setCategoryId(e.target.value)}
+                            className="chronicle-input"
+                          >
+                            <option value="">Selecione...</option>
+                            {categories.map(cat => (
+                              <option key={cat.id} value={cat.id}>{cat.name}</option>
+                            ))}
+                          </select>
+                        )}
                       </div>
                       
                       <div className="form-group">
@@ -768,7 +795,12 @@ function Dashboard() {
                   >
                     <div className="capsule-header">
                       <div className="capsule-icon">
-                        {capsule.metadata?.authorAvatar}
+                        <img
+                          src={capsule.metadata?.authorAvatar}
+                          alt={`Avatar de ${capsule.metadata?.author}`}
+                          className="avatar avatar-sm"
+                          onError={(e) => { e.target.onerror = null; e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${capsule.creatorId || capsule.creator?.id || 'user'}`; }}
+                        />
                       </div>
                       <div className="capsule-info">
                         <h3>{capsule.title}</h3>
@@ -885,7 +917,7 @@ function Dashboard() {
                     </div>
                     
                     <div className="stat-card">
-                      <div className="stat-icon">🔒</div>
+                      <div className="stat-icon"></div>
                       <div className="stat-content">
                         <h3>{statistics.lockedCapsules}</h3>
                         <p>Bloqueadas</p>
@@ -1164,7 +1196,12 @@ function Dashboard() {
               <div className="capsule-detail">
                 <div className="detail-header">
                   <div className="detail-avatar">
-                    {selectedCapsule.metadata?.authorAvatar}
+                    <img
+                      src={selectedCapsule.metadata?.authorAvatar}
+                      alt={`Avatar de ${selectedCapsule.metadata?.author}`}
+                      className="avatar avatar-lg"
+                      onError={(e) => { e.target.onerror = null; e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedCapsule.creatorId || selectedCapsule.creator?.id || 'user'}`; }}
+                    />
                   </div>
                   <div>
                     <h2>{selectedCapsule.title}</h2>

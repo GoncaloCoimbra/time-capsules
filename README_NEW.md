@@ -38,7 +38,7 @@ Perfect for:
 - 📑 Multiple sorting options
 -  Reminder system for unlocks
 -  View counter
-- 🔒 Privacy controls (public/private)
+-  Privacy controls (public/private)
 - 📚 Templates library
 - 📝 Audit logging
 - ⚡ Performance optimizations

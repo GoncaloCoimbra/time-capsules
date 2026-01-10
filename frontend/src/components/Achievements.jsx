@@ -251,7 +251,7 @@ function Achievements({ capsules = [], statistics = null }) {
 
               {!unlocked && (
                 <div className="locked-overlay">
-                  <span>🔒 Bloqueado</span>
+                  <span> Bloqueado</span>
                 </div>
               )}
             </motion.div>

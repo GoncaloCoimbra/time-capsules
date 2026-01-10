@@ -13,7 +13,6 @@ function Login() {
   const navigate = useNavigate();
   const secondHandRef = useRef(null);
 
-  // Atualizar tempo em tempo real
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
@@ -22,7 +21,6 @@ function Login() {
     return () => clearInterval(timer);
   }, []);
 
-  // Efeito de partículas para o fundo
   useEffect(() => {
     const particlesContainer = document.querySelector('.time-particles');
     if (!particlesContainer) return;
@@ -34,19 +32,12 @@ function Login() {
       const particle = document.createElement('div');
       particle.className = 'time-particle';
       
-      // Posição aleatória
       const posX = Math.random() * 100;
       const posY = Math.random() * 100;
-      
-      // Tamanho aleatório
       const size = Math.random() * 4 + 1;
-      
-      // Cor baseada na posição (dourado ou azul)
       const isGold = Math.random() > 0.5;
       const color = isGold ? '#e2b714' : '#1f7a8c';
       const opacity = Math.random() * 0.3 + 0.1;
-      
-      // Animação personalizada
       const duration = Math.random() * 20 + 10;
       const delay = Math.random() * 5;
       
@@ -84,7 +75,6 @@ function Login() {
     }
   };
 
-  // Formatar hora atual
   const formatTime = (date) => {
     return date.toLocaleTimeString('pt-PT', {
       hour: '2-digit',
@@ -95,19 +85,14 @@ function Login() {
 
   return (
     <div className="time-chronicle-container">
-      {/* Fundo com partículas de tempo */}
       <div className="time-particles"></div>
       
-      {/* Relógio Analógico Gigante Atrás */}
       <div className="majestic-clock">
-        {/* Anéis concêntricos */}
         <div className="clock-ring ring-1"></div>
         <div className="clock-ring ring-2"></div>
         <div className="clock-ring ring-3"></div>
         
-        {/* Mostrador principal */}
         <div className="clock-face">
-          {/* Marcadores das horas */}
           {Array.from({ length: 12 }).map((_, i) => {
             const angle = (i * 30) * Math.PI / 180;
             const radius = 42;
@@ -133,9 +118,8 @@ function Login() {
             );
           })}
           
-          {/* Marcadores dos minutos */}
           {Array.from({ length: 60 }).map((_, i) => {
-            if (i % 5 === 0) return null; // Pular as horas
+            if (i % 5 === 0) return null;
             
             const angle = (i * 6) * Math.PI / 180;
             const radius = 44;
@@ -155,7 +139,6 @@ function Login() {
             );
           })}
           
-          {/* Ponteiros */}
           <div 
             className="clock-hand hour-hand"
             style={{
@@ -185,13 +168,11 @@ function Login() {
             <div className="hand-counterweight"></div>
           </div>
           
-          {/* Centro do relógio */}
           <div className="clock-center">
             <div className="center-glow"></div>
           </div>
         </div>
         
-        {/* Data atual */}
         <div className="clock-date-display">
           {currentTime.toLocaleDateString('pt-PT', {
             weekday: 'long',
@@ -200,7 +181,6 @@ function Login() {
           })}
         </div>
         
-        {/* Hora digital */}
         <div className="clock-digital-time">
           {formatTime(currentTime)}
           <span className="digital-seconds">
@@ -209,11 +189,9 @@ function Login() {
         </div>
       </div>
       
-      {/* Card de Login Flutuante */}
       <div className="chronicle-card">
         <div className="card-glow"></div>
         
-        {/* Cabeçalho */}
         <div className="card-header">
           <div className="time-glyph">
             <div className="glyph-circle">
@@ -224,11 +202,10 @@ function Login() {
           
           <div className="header-text">
             <h1 className="chronicle-title">Time Chronicle</h1>
-            <p className="chronicle-subtitle">  Aceder as suas memórias temporais</p>
+            <p className="chronicle-subtitle">Aceder às suas memórias temporais</p>
           </div>
         </div>
         
-        {/* Mensagem de erro */}
         {error && (
           <div className="chronicle-error">
             <div className="error-pulse"></div>
@@ -239,7 +216,6 @@ function Login() {
           </div>
         )}
         
-        {/* Formulário */}
         <form onSubmit={handleSubmit} className="chronicle-form">
           <div className="form-group">
             <div className="input-wrapper">
@@ -254,7 +230,6 @@ function Login() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
-              <div className="input-underline"></div>
             </div>
           </div>
           
@@ -271,18 +246,25 @@ function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
-              <div className="input-underline"></div>
               <button
                 type="button"
                 className="password-toggle"
                 onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? 'Esconder palavra-passe' : 'Mostrar palavra-passe'}
               >
-                {showPassword ? '' : '‍🗨️'}
+                {showPassword ? (
+                  <svg className="eye-icon" viewBox="0 0 24 24" width="20" height="20">
+                    <path fill="currentColor" d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+                  </svg>
+                ) : (
+                  <svg className="eye-icon" viewBox="0 0 24 24" width="20" height="20">
+                    <path fill="currentColor" d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z"/>
+                  </svg>
+                )}
               </button>
             </div>
           </div>
           
-          {/* Opções */}
           <div className="form-options">
             <label className="checkbox-container">
               <input type="checkbox" className="hidden-checkbox" />
@@ -299,14 +281,13 @@ function Login() {
             </Link>
           </div>
           
-          {/* Botão de login */}
           <button 
             type="submit" 
             className="chronicle-button"
             disabled={loading}
           >
             <span className="button-text">
-              {loading ? 'A aceder...' : 'Aceder à Cápsula do Tempoe Capsule'}
+              {loading ? 'A aceder...' : 'Aceder à Cápsula do Tempo'}
             </span>
             <div className="button-arrows">
               <div className="arrow">→</div>
@@ -315,14 +296,12 @@ function Login() {
           </button>
         </form>
         
-        {/* Divisor */}
         <div className="chronicle-divider">
           <div className="divider-line"></div>
           <span className="divider-text">ou continue com</span>
           <div className="divider-line"></div>
         </div>
         
-        {/* Login social */}
         <div className="social-login">
           <button 
             className="social-button github-button"
@@ -350,12 +329,11 @@ function Login() {
           </button>
         </div>
         
-        {/* Rodapé */}
         <div className="chronicle-footer">
           <p className="footer-text">
             Novo no Time Chronicle?{' '}
             <Link to="/register" className="footer-link">
-              Crie sua conta
+              Crie a sua conta
             </Link>
           </p>
           
@@ -383,7 +361,6 @@ function Login() {
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         }
         
-        /* Partículas de fundo */
         .time-particles {
           position: absolute;
           top: 0;
@@ -419,7 +396,6 @@ function Login() {
           }
         }
         
-        /* Relógio majestoso atrás */
         .majestic-clock {
           position: fixed;
           top: 50%;
@@ -628,7 +604,6 @@ function Login() {
           color: rgba(226, 183, 20, 0.7);
         }
         
-        /* Card de login */
         .chronicle-card {
           background: rgba(15, 15, 25, 0.85);
           backdrop-filter: blur(20px);
@@ -669,7 +644,6 @@ function Login() {
           z-index: -1;
         }
         
-        /* Cabeçalho do card */
         .card-header {
           text-align: center;
           margin-bottom: 40px;
@@ -735,7 +709,6 @@ function Login() {
           font-weight: 400;
         }
         
-        /* Mensagem de erro */
         .chronicle-error {
           background: rgba(220, 38, 38, 0.1);
           border: 1px solid rgba(220, 38, 38, 0.2);
@@ -776,17 +749,20 @@ function Login() {
           line-height: 1.4;
         }
         
-        /* Formulário */
         .chronicle-form {
           margin-bottom: 30px;
         }
         
         .form-group {
           margin-bottom: 25px;
+          position: relative;
         }
         
         .input-wrapper {
           position: relative;
+          display: flex;
+          align-items: center;
+          width: 100%;
         }
         
         .input-icon {
@@ -797,20 +773,26 @@ function Login() {
           width: 20px;
           height: 20px;
           fill: #64748b;
-          z-index: 2;
+          z-index: 1;
           transition: fill 0.3s ease;
+          pointer-events: none;
         }
         
         .chronicle-input {
           width: 100%;
-          padding: 16px 16px 16px 48px;
+          padding: 16px 52px 16px 52px;
           background: rgba(30, 41, 59, 0.5);
           border: 1px solid #334155;
           border-radius: 12px;
           color: #f1f5f9;
-          font-size: 16px;
+          font-size: 15px;
           font-family: 'Inter', sans-serif;
           transition: all 0.3s ease;
+          box-sizing: border-box;
+          height: 52px;
+          line-height: 1.5;
+          z-index: 2;
+          position: relative;
         }
         
         .chronicle-input:focus {
@@ -819,23 +801,39 @@ function Login() {
           background: rgba(30, 41, 59, 0.8);
         }
         
-        .chronicle-input:focus ~ .input-icon {
+        /* Make icon highlight when wrapper is focused */
+        .input-wrapper:focus-within .input-icon {
           fill: #e2b714;
         }
-        
-        .input-underline {
-          position: absolute;
-          bottom: 0;
-          left: 0;
-          width: 0;
-          height: 2px;
-          background: linear-gradient(90deg, #e2b714, #1f7a8c);
-          transition: width 0.3s ease;
-          border-radius: 0 0 12px 12px;
+
+        /* Input becomes white when focused or when it has content (typing) */
+        .input-wrapper:focus-within .chronicle-input,
+        .chronicle-input:not(:placeholder-shown) {
+          background: #ffffff;
+          color: #111827;
+          border-color: #e2b714;
         }
-        
-        .chronicle-input:focus ~ .input-underline {
-          width: 100%;
+
+        .input-wrapper:focus-within .input-icon {
+          fill: #111827;
+        }
+
+        /* Password toggle keeps fixed position and changes color on focus */
+        .password-toggle {
+          right: 16px;
+        }
+
+        .input-wrapper:focus-within .password-toggle {
+          color: #111827;
+          background: transparent;
+        }
+
+        .chronicle-input::placeholder {
+          color: #94a3b8;
+        }
+
+        .chronicle-input:not(:placeholder-shown)::placeholder {
+          color: transparent;
         }
         
         .password-toggle {
@@ -846,11 +844,16 @@ function Login() {
           background: none;
           border: none;
           color: #94a3b8;
-          font-size: 20px;
           cursor: pointer;
-          padding: 4px;
+          padding: 8px;
           border-radius: 6px;
           transition: all 0.2s ease;
+          z-index: 3;
+          width: 36px;
+          height: 36px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
         
         .password-toggle:hover {
@@ -858,7 +861,11 @@ function Login() {
           background: rgba(226, 183, 20, 0.1);
         }
         
-        /* Opções do formulário */
+        .eye-icon {
+          width: 20px;
+          height: 20px;
+        }
+        
         .form-options {
           display: flex;
           justify-content: space-between;
@@ -923,7 +930,6 @@ function Login() {
           color: #e2b714;
         }
         
-        /* Botão principal */
         .chronicle-button {
           width: 100%;
           padding: 18px;
@@ -989,7 +995,6 @@ function Login() {
           left: 100%;
         }
         
-        /* Divisor */
         .chronicle-divider {
           display: flex;
           align-items: center;
@@ -1014,7 +1019,6 @@ function Login() {
           color: #94a3b8;
         }
         
-        /* Login social */
         .social-login {
           display: grid;
           grid-template-columns: 1fr 1fr;
@@ -1061,7 +1065,6 @@ function Login() {
           height: 20px;
         }
         
-        /* Rodapé */
         .chronicle-footer {
           text-align: center;
           padding-top: 25px;
@@ -1104,7 +1107,6 @@ function Login() {
           fill: #e2b714;
         }
         
-        /* Animações */
         @keyframes ringPulse {
           0%, 100% { opacity: 0.3; }
           50% { opacity: 0.7; }
@@ -1151,7 +1153,6 @@ function Login() {
           }
         }
         
-        /* Responsividade */
         @media (max-width: 768px) {
           .majestic-clock {
             width: 90vmin;
@@ -1168,6 +1169,24 @@ function Login() {
           
           .chronicle-title {
             font-size: 28px;
+          }
+          
+          .chronicle-input {
+            padding: 14px 50px 14px 50px;
+            font-size: 16px;
+            height: 50px;
+          }
+          
+          .password-toggle {
+            right: 14px;
+            width: 32px;
+            height: 32px;
+          }
+          
+          .input-icon {
+            left: 14px;
+            width: 18px;
+            height: 18px;
           }
           
           .social-login {
@@ -1202,6 +1221,24 @@ function Login() {
           .time-glyph {
             width: 60px;
             height: 60px;
+          }
+          
+          .chronicle-input {
+            padding: 12px 46px 12px 46px;
+            font-size: 15px;
+            height: 48px;
+          }
+          
+          .password-toggle {
+            right: 12px;
+            width: 30px;
+            height: 30px;
+          }
+          
+          .input-icon {
+            left: 12px;
+            width: 16px;
+            height: 16px;
           }
         }
       `}</style>

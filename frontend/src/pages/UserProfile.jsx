@@ -588,7 +588,7 @@ function UserProfile() {
                     <div className="capsule-title-badge">
                       <h3>{capsule.title}</h3>
                       <span className={`status-badge ${capsule.isUnlocked ? 'unlocked' : 'locked'}`}>
-                        {capsule.isUnlocked ? '🔓' : '🔒'}
+                        {capsule.isUnlocked ? '🔓' : ''}
                       </span>
                     </div>
                   </div>
