@@ -63,6 +63,9 @@ export const communityAPI = {
   getTrendingTechs: () => api.get('/community/trending')
 };
 
+// community voting (placeholder - backend must support)
+communityAPI.vote = (capsuleId) => api.post('/community/vote', { capsuleId });
+
 // Auth API
 export const authAPI = {
   register: (data) => api.post('/auth/register', data),
@@ -84,3 +87,9 @@ export const notificationAPI = {
   list: () => api.get('/notifications'),
   markRead: (id) => api.patch(`/notifications/${id}/read`)
 };
+
+// send email placeholder (backend required)
+notificationAPI.sendEmail = (data) => api.post('/notifications/send-email', data);
+
+// schedule reminder placeholder (backend required) - front-end also persists locally
+notificationAPI.schedule = (data) => api.post('/notifications/schedule', data);

@@ -61,6 +61,7 @@ const Favorite = require('./models/Favorite');
 const User = require('./models/User');
 const Follow = require('./models/Follow');
 const Notification = require('./models/Notification');
+const Vote = require('./models/Vote');
 
 Capsule.belongsTo(Category, { foreignKey: 'categoryId', as: 'category' });
 Category.hasMany(Capsule, { foreignKey: 'categoryId', as: 'capsules' });
@@ -89,6 +90,12 @@ Favorite.belongsTo(Capsule, { foreignKey: 'capsuleId' });
 User.hasMany(Favorite, { foreignKey: 'userId', as: 'favorites' });
 Favorite.belongsTo(User, { foreignKey: 'userId' });
 
+// Votes
+Capsule.hasMany(Vote, { foreignKey: 'capsuleId', as: 'votes' });
+Vote.belongsTo(Capsule, { foreignKey: 'capsuleId' });
+User.hasMany(Vote, { foreignKey: 'userId', as: 'votesByUser' });
+Vote.belongsTo(User, { foreignKey: 'userId' });
+
 app.use('/api/favorites', require('./routes/favoriteRoutes'));
 app.use('/api/follow', require('./routes/followRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
@@ -101,10 +108,50 @@ User.hasMany(Follow, { foreignKey: 'followingId', as: 'followers' });
 User.hasMany(Notification, { foreignKey: 'userId', as: 'notifications' });
 Notification.belongsTo(User, { foreignKey: 'userId' });
 
+const ScheduledNotification = require('./models/ScheduledNotification');
+User.hasMany(ScheduledNotification, { foreignKey: 'userId', as: 'scheduledNotifications' });
+ScheduledNotification.belongsTo(User, { foreignKey: 'userId' });
 
 connectDB().then(() => {
   app.listen(PORT, () => {
     console.log(' Server running on port ' + PORT);
     console.log(' Version 3.0.0 - Ultimate Edition');
   });
+
+  // Background scheduler: process pending scheduled notifications every minute
+  const { Op } = require('sequelize');
+  const processScheduledNotifications = async () => {
+    try {
+      const due = await ScheduledNotification.findAll({ where: { sent: false, remindAt: { [Op.lte]: new Date() } } });
+      for (const s of due) {
+        try {
+          await Notification.create({ userId: s.userId, actorId: s.actorId, type: 'reminder', capsuleId: s.capsuleId, meta: s.meta });
+
+          if (process.env.SMTP_HOST && s.meta && s.meta.email) {
+            const nodemailer = require('nodemailer');
+            const transporter = nodemailer.createTransport({
+              host: process.env.SMTP_HOST,
+              port: process.env.SMTP_PORT || 587,
+              secure: process.env.SMTP_SECURE === 'true',
+              auth: {
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS
+              }
+            });
+
+            await transporter.sendMail({ from: process.env.SMTP_FROM || process.env.SMTP_USER, to: s.meta.email, subject: s.meta.subject || 'Lembrete CodeTime', html: s.meta.html || `<p>Lembrete da sua cápsula</p>` });
+          }
+
+          s.sent = true;
+          await s.save();
+        } catch (err) {
+          console.error('Error processing scheduled notification', err);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching scheduled notifications', err);
+    }
+  };
+
+  setInterval(processScheduledNotifications, 60 * 1000);
 });

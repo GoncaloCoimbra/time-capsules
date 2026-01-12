@@ -11,10 +11,23 @@ function DiscoverCommunity() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('recent');
   const [loading, setLoading] = useState(true);
+  const [trendingCapsules, setTrendingCapsules] = useState([]);
 
   useEffect(() => {
     loadCommunity();
+    loadTrending();
   }, []);
+
+  const loadTrending = async () => {
+    try {
+      const res = await communityAPI.getLeaderboard({ type: 'capsules', limit: 20 });
+      // Expect res.data.leaderboard or res.data.capsules
+      const capsules = res.data?.leaderboard || res.data?.capsules || [];
+      setTrendingCapsules(capsules);
+    } catch (err) {
+      console.error('Erro ao carregar trending:', err);
+    }
+  };
 
   useEffect(() => {
     filterAndSort();
@@ -54,6 +67,25 @@ function DiscoverCommunity() {
     } catch (error) {
       console.error('Erro ao carregar comunidade:', error);
       setLoading(false);
+    }
+  };
+
+  const handleVote = async (capsuleId) => {
+    // optimistic UI: increase local count
+    setTrendingCapsules(prev => prev.map(c => c.id === capsuleId ? { ...c, votes: (c.votes || 0) + 1, _optimistic: true } : c));
+    try {
+      const res = await communityAPI.vote(capsuleId);
+      const votes = res.data?.votes ?? null;
+      const voted = typeof res.data?.voted === 'boolean' ? res.data.voted : true;
+      if (votes !== null) {
+        setTrendingCapsules(prev => prev.map(c => c.id === capsuleId ? { ...c, votes, voted, _optimistic: false } : c));
+      } else {
+        setTrendingCapsules(prev => prev.map(c => c.id === capsuleId ? { ...c, _optimistic: false } : c));
+      }
+    } catch (err) {
+      console.error('Erro ao votar:', err);
+      // revert optimistic
+      setTrendingCapsules(prev => prev.map(c => c.id === capsuleId ? { ...c, votes: Math.max((c.votes || 1) - 1, 0), _optimistic: false } : c));
     }
   };
 
@@ -101,6 +133,10 @@ function DiscoverCommunity() {
         </div>
 
         <div className="discover-controls">
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button className="chronicle-button" onClick={loadCommunity}>🔄 Atualizar</button>
+            <button className="btn-secondary" onClick={loadTrending}>🔥 Trending</button>
+          </div>
           <div className="search-box">
             <input
               type="text"
@@ -129,6 +165,25 @@ function DiscoverCommunity() {
           <p>Carregando exploradores do tempo...</p>
         </div>
       ) : filteredExplorers.length > 0 ? (
+        <>
+          {trendingCapsules.length > 0 && (
+            <div className="trending-section">
+              <h3>🔥 Cápsulas em Tendência</h3>
+              <div className="trending-list">
+                {trendingCapsules.map(c => (
+                  <div key={c.id} className="trending-card">
+                    <div className="trending-title">{c.title}</div>
+                    <div className="trending-meta">{c.creatorName || c.metadata?.author} · {c.viewCount || 0} views</div>
+                    <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <button className="chronicle-button" onClick={() => handleVote(c.id)}>▲ Votar</button>
+                      <span style={{ fontSize: 14, color: '#666' }}>{c.votes || 0} votos</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -219,6 +274,7 @@ function DiscoverCommunity() {
             ))}
           </AnimatePresence>
         </motion.div>
+        </>
       ) : (
         <div className="empty-state">
           <p>🔍 Nenhum explorador encontrado</p>

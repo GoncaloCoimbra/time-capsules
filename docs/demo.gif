@@ -1,0 +1,6 @@
+# Base64-encoded GIF placeholder
+# This file contains a base64-encoded small animated GIF. To convert it into a real binary GIF, run:
+#   (Linux/macOS)  base64 -d docs/demo.gif > docs/demo-real.gif
+#   (Windows PowerShell) [System.Convert]::FromBase64String((Get-Content docs/demo.gif -Raw)) > docs\demo-real.gif
+
+R0lGODlhEAAQAKIAAP///wAAAMLCwgAAAG5ubgAAAAAAAAAAACH5BAEAAAQALAAAAAAQABAAAAKBlI+py+0Po5y02ouz3rz7D4biSJbmiabqyrbuC8fyTN8gAAOw==

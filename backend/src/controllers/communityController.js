@@ -201,6 +201,34 @@ exports.trackView = async (req, res) => {
   }
 };
 
+// Voting endpoint - toggle vote for a capsule (idempotent per user)
+const Vote = require('../models/Vote');
+
+exports.vote = async (req, res) => {
+  try {
+    const { capsuleId } = req.body;
+    const userId = req.user.userId;
+
+    const capsule = await Capsule.findByPk(capsuleId);
+    if (!capsule) return res.status(404).json({ message: 'Capsule not found' });
+
+    // Try to create a vote; if exists, remove it (toggle)
+    const [vote, created] = await Vote.findOrCreate({ where: { userId, capsuleId }, defaults: { userId, capsuleId } });
+    let voted = true;
+    if (!created) {
+      await Vote.destroy({ where: { userId, capsuleId } });
+      voted = false;
+    }
+
+    const votes = await Vote.count({ where: { capsuleId } });
+
+    res.json({ message: voted ? 'Voted' : 'Vote removed', voted, votes });
+  } catch (error) {
+    console.error('Error in vote:', error);
+    res.status(500).json({ message: 'Error processing vote', error: error.message });
+  }
+};
+
 exports.getTrendingTechs = async (req, res) => {
   try {
     // Get trending tags based on capsule count

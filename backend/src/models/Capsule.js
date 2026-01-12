@@ -51,6 +51,15 @@ const Capsule = sequelize.define('Capsule', {
     type: DataTypes.STRING,
     defaultValue: '#6366f1'
   },
+  // Optional code snippet and language for developer capsules
+  codeSnippet: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+  language: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
   reminder: {
     type: DataTypes.INTEGER,
     defaultValue: 0,

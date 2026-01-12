@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import toast from 'react-hot-toast';
+import Confetti from 'react-confetti';
+import { useRef } from 'react';
 import '../styles/achievements.css';
 
 function Achievements({ capsules = [], statistics = null }) {
@@ -127,6 +130,21 @@ function Achievements({ capsules = [], statistics = null }) {
     setUnlockedCount(unlocked.length);
   }, [capsules]);
 
+  // show toast/confetti when new achievement unlocked
+  const prevRef = useRef(0);
+  const [showConfetti, setShowConfetti] = useState(false);
+
+  useEffect(() => {
+    const unlocked = allAchievements.filter(ach => ach.condition()).length;
+    if (unlocked > prevRef.current) {
+      const diff = unlocked - prevRef.current;
+      toast.success(`+${diff} achievement(s) desbloqueado(s)! 🎉`);
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 3500);
+    }
+    prevRef.current = unlocked;
+  }, [unlockedCount]);
+
   const isUnlocked = (achievement) => achievement.condition();
 
   const getTotalXP = () => {
@@ -166,6 +184,7 @@ function Achievements({ capsules = [], statistics = null }) {
 
   return (
     <div className="achievements-container">
+      {showConfetti && <Confetti recycle={false} numberOfPieces={200} />}
       <div className="achievements-header">
         <h2>🏆 Achievements & Badges</h2>
         <div className="achievements-summary">

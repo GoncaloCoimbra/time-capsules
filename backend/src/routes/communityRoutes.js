@@ -7,6 +7,7 @@ router.get('/explore/public', auth, communityController.explorePublic);
 router.get('/stats', auth, communityController.getCommunityStats);
 router.get('/leaderboard', auth, communityController.getLeaderboard);
 router.post('/track-view', auth, communityController.trackView);
+router.post('/vote', auth, communityController.vote);
 router.get('/trending', auth, communityController.getTrendingTechs);
 
 module.exports = router;

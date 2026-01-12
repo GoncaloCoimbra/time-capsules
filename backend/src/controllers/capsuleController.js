@@ -61,7 +61,7 @@ const createDefaultCategories = async (userId) => {
 
 exports.createCapsule = async (req, res) => {
   try {
-    const { title, content, unlockDate, categoryId, isPrivate, color, reminder, tags } = req.body;
+    const { title, content, unlockDate, categoryId, isPrivate, color, reminder, tags, codeSnippet, language } = req.body;
 
     // Criar categorias padrão se não existirem
     await createDefaultCategories(req.user.userId);
@@ -89,6 +89,8 @@ exports.createCapsule = async (req, res) => {
       isPrivate: isPrivate !== undefined ? isPrivate : true,
       color: color || '#e2b714',
       reminder: reminder || 0,
+      codeSnippet: codeSnippet || null,
+      language: language || null,
       creatorId: req.user.userId,
       // SALVAR METADATA DO AUTOR NO MOMENTO DA CRIAÇÃO
       metadata: {

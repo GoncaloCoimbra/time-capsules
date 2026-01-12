@@ -214,7 +214,9 @@
   font-size: 32px;
   font-weight: 700;
   background: linear-gradient(135deg, #e2b714 0%, #1f7a8c 100%);
+  background-clip: text; /* standard */
   -webkit-background-clip: text;
+  color: transparent; /* fallback for non-WebKit */
   -webkit-text-fill-color: transparent;
   margin: 0 0 4px 0;
   letter-spacing: -0.5px;
@@ -756,20 +758,53 @@ select.chronicle-input {
 }
 
 .capsule-card {
-  background: rgba(30, 41, 59, 0.3);
+  background: linear-gradient(180deg, rgba(30,41,59,0.45), rgba(15,23,42,0.4));
   border-radius: 16px;
   padding: 20px;
-  border: 1px solid rgba(226, 183, 20, 0.1);
-  border-left: 4px solid #e2b714;
+  border: 1px solid rgba(226, 183, 20, 0.08);
+  border-left: 6px solid transparent;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.capsule-card::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  background: linear-gradient(180deg, #e2b714, #1f7a8c);
 }
 
 .capsule-card:hover {
-  transform: translateY(-4px);
-  border-color: rgba(226, 183, 20, 0.3);
-  box-shadow: 0 10px 30px rgba(226, 183, 20, 0.1);
+  transform: translateY(-6px);
+  border-color: rgba(226, 183, 20, 0.25);
+  box-shadow: 0 18px 40px rgba(2,6,23,0.6);
 }
+
+.capsule-preview p {
+  color: #cbd5e1;
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.capsule-tags .tag {
+  background: rgba(255,255,255,0.03);
+  color: #e2b714;
+  padding: 6px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  margin-right: 6px;
+}
+
+.status-badge.small {
+  font-size: 11px;
+  padding: 4px 8px;
+}
+
 
 .capsule-header {
   display: flex;
@@ -943,7 +978,9 @@ select.chronicle-input {
 .time-travel-header h2 {
   font-size: 2.5rem;
   background: linear-gradient(135deg, #e2b714, #1f7a8c);
+  background-clip: text; /* standard */
   -webkit-background-clip: text;
+  color: transparent; /* fallback for non-WebKit */
   -webkit-text-fill-color: transparent;
   margin-bottom: 12px;
 }
@@ -1117,7 +1154,9 @@ select.chronicle-input {
 .trending-header h2 {
   font-size: 2.5rem;
   background: linear-gradient(135deg, #e2b714, #ff6b6b);
+  background-clip: text; /* standard */
   -webkit-background-clip: text;
+  color: transparent; /* fallback for non-WebKit */
   -webkit-text-fill-color: transparent;
   margin-bottom: 12px;
 }

@@ -69,6 +69,10 @@ Perfect for:
 
 ## 🚀 Getting Started
 
+> Backend integration: see `docs/BACKEND_INTEGRATION.md` for instructions to enable emails, scheduled reminders and voting endpoints. You should configure provider credentials (SMTP or SendGrid) and set `EMAIL_FROM`, `SMTP_USER` and `SMTP_PASS` in the backend `.env` before enabling production notifications.
+
+
+
 ### Prerequisites
 - Node.js 18+ and npm
 - Git
@@ -180,6 +184,47 @@ npm run dev
 | GET | `/api/likes/:capsuleId/check` | Check if user liked |
 
 ### Community Features
+
+<!-- Embedded demo GIF (base64 inline for immediate rendering) -->
+<img src="data:image/gif;base64,R0lGODlhEAAQAKIAAP///wAAAMLCwgAAAG5ubgAAAAAAAAAAACH5BAEAAAQALAAAAAAQABAAAAKBlI+py+0Po5y02ouz3rz7D4biSJbmiabqyrbuC8fyTN8gAAOw==" alt="Demo GIF" />
+
+> Note: a repository file is available at `docs/demo.gif` (base64). Replace it with a binary GIF to serve it directly if preferred.
+
+## English README (short)
+
+CodeTime Capsule is a social time-capsule application for developers: write code, predictions or messages and lock them until a future date. On that date, your capsule opens and becomes visible to you and/or the community.
+
+Key features:
+- Create capsules with text and code snippets (supports multiple languages)
+- Schedule reminders and optional community notifications
+- Reveal page with comparison tools, achievements, and a community leaderboard
+- Voting and trending capsules
+
+Quick Start (local)
+1. Backend: cd backend && npm install && create a `.env` with `JWT_SECRET`, `DB_NAME`
+2. Frontend: cd frontend && npm install && set `VITE_API_URL` in `.env`
+3. Run backend: `npm start` in `backend`
+4. Run frontend: `npm run dev` in `frontend`
+
+Deploy to Render (recommended staging):
+- Create two services on Render: a Web Service for `backend/` (Node.js), and a Static Site (or Web Service) for the built frontend (`frontend/`).
+- Set environment variables in Render (JWT_SECRET, DB_NAME, SMTP_* if you want email).
+- Configure the backend service to run `npm start` and the frontend build step to run `npm run build` and serve the `dist/` directory.
+
+Notes:
+- The editor supports multiple languages (JavaScript, Python, Java, Bash, Go, JSON and plain text). The backend stores `codeSnippet` and `language` fields.
+- A lightweight background poller handles scheduled reminders; for production-grade scheduling, use a queue (BullMQ + Redis) and retry logic.
+
+If you'd like, I can add a Render button or sample `render.yaml` to make staging deployment one-click.
+
+### Deploy & running in production
+
+- Backend: create a `.env` file with `JWT_SECRET`, `DB_NAME`, and optional SMTP variables.
+- Run the backend with `npm install` and `npm start` in the `backend/` folder.
+- Frontend: set `VITE_API_URL` in `.env` and run `npm install` and `npm run build` in `frontend/`.
+- CI: A template GitHub Actions workflow is available at `.github/workflows/ci.yml` to build and verify both frontend and backend.
+
+
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/community/explore/public` | Explore public capsules |

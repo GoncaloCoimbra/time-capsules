@@ -1,17 +1,47 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { format, isPast } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { motion } from 'framer-motion';
 import '../styles/timeline.css';
 
-function TimelineView({ capsules = [], onCapsuleClick }) {
+function TimelineView({ capsules = [], onCapsuleClick, newCapsuleId = null }) {
   const [hoveredId, setHoveredId] = useState(null);
   const [timelineMode, setTimelineMode] = useState('vertical');
+  const [showDrop, setShowDrop] = useState(false);
+  const [dropTargetTop, setDropTargetTop] = useState(0);
+  const [dropContent, setDropContent] = useState(null);
+  const containerRef = useRef(null);
 
   // Ordenar cápsulas por data de desbloqueio
   const sortedCapsules = [...capsules].sort((a, b) => 
     new Date(a.unlockDate) - new Date(b.unlockDate)
   );
+
+  // Parallax / scroll interactivity
+  useEffect(() => {
+    const container = document.querySelector('.timeline-vertical') || document.querySelector('.timeline-horizontal') || document.querySelector('.timeline-container');
+    if (!container) return;
+
+    const handleScroll = () => {
+      const nodes = container.querySelectorAll('.timeline-item, .timeline-node');
+      const rect = container.getBoundingClientRect();
+      nodes.forEach((node, i) => {
+        const nodeRect = node.getBoundingClientRect();
+        const distance = (nodeRect.top + nodeRect.height / 2) - (rect.top + rect.height / 2);
+        const depth = Math.max(-50, Math.min(50, -distance * 0.05));
+        node.style.transform = `translateY(${depth}px)`;
+      });
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [capsules]);
 
   const getUnlockStatus = (capsule) => {
     // Usar o campo isUnlocked do servidor como fonte de verdade
@@ -25,6 +55,32 @@ function TimelineView({ capsules = [], onCapsuleClick }) {
     return days > 0 ? days : 0;
   };
 
+  // trigger drop animation when a new capsule id is provided
+  useEffect(() => {
+    if (!newCapsuleId) return;
+
+    // small timeout to let DOM render
+    setTimeout(() => {
+      const container = containerRef.current || document.querySelector('.timeline-container');
+      if (!container) return;
+      const targetEl = container.querySelector(`[data-capsule-id='${newCapsuleId}']`);
+      if (!targetEl) return;
+
+      const containerRect = container.getBoundingClientRect();
+      const targetRect = targetEl.getBoundingClientRect();
+      const top = targetRect.top - containerRect.top + targetRect.height / 2 - 20;
+
+      const capsuleData = capsules.find(c => String(c.id) === String(newCapsuleId));
+
+      setDropContent(capsuleData || { title: 'Nova Cápsula' });
+      setDropTargetTop(top);
+      setShowDrop(true);
+
+      // hide drop after animation
+      setTimeout(() => setShowDrop(false), 2200);
+    }, 300);
+  }, [newCapsuleId]);
+
   // Filtrar estatísticas corretamente
   const lockedCount = sortedCapsules.filter(c => !c.isUnlocked).length;
   const unlockedCount = sortedCapsules.filter(c => c.isUnlocked).length;
@@ -35,7 +91,7 @@ function TimelineView({ capsules = [], onCapsuleClick }) {
   const minDays = daysUntilNext.length > 0 ? Math.min(...daysUntilNext) : 0;
 
   return (
-    <div className="timeline-container">
+    <div className="timeline-container" ref={containerRef}>
       <div className="timeline-header">
         <h2>⏳ Timeline Temporal</h2>
         <div className="timeline-controls">
@@ -64,6 +120,7 @@ function TimelineView({ capsules = [], onCapsuleClick }) {
             return (
               <motion.div
                 key={capsule.id}
+                data-capsule-id={capsule.id}
                 initial={{ opacity: 0, x: index % 2 === 0 ? -50 : 50 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.1 }}
@@ -130,6 +187,7 @@ function TimelineView({ capsules = [], onCapsuleClick }) {
               return (
                 <motion.div
                   key={capsule.id}
+                  data-capsule-id={capsule.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
@@ -162,11 +220,29 @@ function TimelineView({ capsules = [], onCapsuleClick }) {
                       </span>
                     </motion.div>
                   )}
+
+    
                 </motion.div>
               );
             })}
           </div>
         </div>
+      )}
+
+      {/* Drop overlay (global) */}
+      {showDrop && (
+        <motion.div
+          initial={{ opacity: 0, y: -40, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.7, ease: 'easeOut' }}
+          style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', top: dropTargetTop, zIndex: 90 }}
+          className="drop-animation"
+        >
+          <div style={{ background: '#0f172a', color: '#e2b714', padding: 12, borderRadius: 8, boxShadow: '0 10px 30px rgba(2,6,23,0.6)' }}>
+            <div style={{ fontSize: 12, opacity: 0.9 }}>Novo</div>
+            <div style={{ fontWeight: 700 }}>{dropContent?.title || 'Nova Cápsula'}</div>
+          </div>
+        </motion.div>
       )}
 
       <div className="timeline-stats">

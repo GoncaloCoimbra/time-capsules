@@ -1,9 +1,12 @@
 ﻿import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { Toaster } from 'react-hot-toast';
 import Login from './pages/Login';
 import Register from './pages/Register'; 
 import Dashboard from './pages/Dashboard';
 import UserProfile from './pages/UserProfile';
+import CreateCapsule from './pages/CreateCapsule';
+import RevealCapsule from './pages/RevealCapsule';
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
@@ -15,6 +18,7 @@ function PrivateRoute({ children }) {
 function App() {
   return (
     <AuthProvider>
+      <Toaster />
       <Router>
         <Routes>
           <Route path='/login' element={<Login />} />
@@ -24,6 +28,22 @@ function App() {
             element={
               <PrivateRoute>
                 <Dashboard />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path='/create'
+            element={
+              <PrivateRoute>
+                <CreateCapsule />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path='/reveal/:id'
+            element={
+              <PrivateRoute>
+                <RevealCapsule />
               </PrivateRoute>
             }
           />

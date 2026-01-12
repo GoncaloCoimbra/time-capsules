@@ -1,10 +1,16 @@
 /* Timeline View Styles */
 
 .timeline-container {
+  position: relative;
   padding: 2rem;
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
   border-radius: 12px;
   margin: 2rem 0;
+}
+
+/* Drop animation element */
+.drop-animation {
+  pointer-events: none;
 }
 
 .timeline-header {

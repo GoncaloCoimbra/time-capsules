@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale'; // Mudado de ptBR para pt (Portugal)
+import { toast } from 'react-hot-toast';
 import { capsuleAPI, communityAPI, favoriteAPI, commentAPI, likeAPI, followAPI, notificationAPI, authAPI } from '../services/capsuleService';
 import './UserProfile.css';
 
@@ -160,6 +161,33 @@ function UserProfile() {
       setLoading(false);
     } catch (error) {
       console.error('Erro ao carregar perfil:', error);
+      // Fallback: mostrar perfil básico mesmo se a chamada falhar (ex: endpoints protegidos)
+      try {
+        const storedAvatar = getStoredAvatar();
+        const userAvatar = storedAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`;
+        const userData = {
+          id: userId,
+          username: 'Utilizador',
+          avatar: userAvatar,
+          bio: 'Colecionador de cápsulas temporais',
+          createdAt: new Date()
+        };
+        setUserProfile(userData);
+        setAvatarPreview(userAvatar);
+        setUserStats({
+          totalCapsules: 0,
+          unlockedCapsules: 0,
+          lockedCapsules: 0,
+          totalViews: 0,
+          totalLikes: 0,
+          totalComments: 0,
+          memberSince: format(new Date(), 'MMMM yyyy', { locale: pt })
+        });
+      } catch (err) {
+        // If fallback fails, keep original behavior
+        console.error('Fallback also failed:', err);
+      }
+
       setLoading(false);
     }
   };
@@ -308,7 +336,19 @@ function UserProfile() {
       
     } catch (error) {
       console.error('Erro completo ao atualizar perfil:', error);
-      alert(`Erro ao atualizar perfil: ${error.response?.data?.message || error.message || 'Verifica os dados e tenta novamente.'}`);
+      const status = error?.response?.status;
+      const message = error?.response?.data?.message || error.message || 'Verifica os dados e tenta novamente.';
+
+      if (status === 401) {
+        // Token inválido ou expirado: limpar estado e redirecionar para login
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        toast.error('Sessão expirada. Faça login novamente.');
+        navigate('/login');
+        return;
+      }
+
+      alert(`Erro ao atualizar perfil: ${message}`);
     } finally {
       setIsSaving(false);
     }

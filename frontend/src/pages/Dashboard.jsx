@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, 
@@ -27,6 +28,10 @@ function Dashboard() {
   const [editingId, setEditingId] = useState(null);
   const [activityFeed, setActivityFeed] = useState([]);
   const [notifications, setNotifications] = useState([]);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [reminderTextLocal, setReminderTextLocal] = useState('');
+  const [reminderDateLocal, setReminderDateLocal] = useState('');
+  const [notifyCommunity, setNotifyCommunity] = useState(false);
   const [trendingTech, setTrendingTech] = useState([]);
   const [currentTime, setCurrentTime] = useState(new Date());
   
@@ -63,6 +68,7 @@ function Dashboard() {
   const [leaderboard, setLeaderboard] = useState([]);
   const [achievements, setAchievements] = useState([]);
   const [capsuleScope, setCapsuleScope] = useState('mine'); // 'mine' ou 'public'
+  const [newCapsuleId, setNewCapsuleId] = useState(null);
   
   // Delete confirmation states
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -70,6 +76,7 @@ function Dashboard() {
   
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const secondHandRef = useRef(null);
 
   // Atualizar tempo em tempo real
@@ -80,6 +87,19 @@ function Dashboard() {
 
     return () => clearInterval(timer);
   }, []);
+
+  // Detect query param newId to trigger timeline animation
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const id = params.get('newId');
+    if (id) {
+      setNewCapsuleId(id);
+      // remove query param after a short delay so it doesn't retrigger
+      setTimeout(() => {
+        navigate('/dashboard', { replace: true });
+      }, 2000);
+    }
+  }, [location.search]);
 
   // Efeito de partículas para o fundo
   useEffect(() => {
@@ -124,7 +144,52 @@ function Dashboard() {
   // Load data from API
   useEffect(() => {
     loadAllData();
+    loadLocalReminders();
   }, [capsuleScope]);
+
+  // Load local reminders from localStorage and set timers
+  const loadLocalReminders = () => {
+    try {
+      const raw = localStorage.getItem('localReminders');
+      if (!raw) return;
+      const items = JSON.parse(raw) || [];
+      // add to notifications list
+      setNotifications(prev => {
+        const merged = [...items.map(i => ({ ...i, local: true })), ...prev];
+        return merged;
+      });
+
+      // schedule timers for pending reminders
+      items.forEach(it => {
+        if (!it.fired) scheduleLocalTrigger(it);
+      });
+    } catch (err) {
+      console.error('Error loading local reminders', err);
+    }
+  };
+
+  const scheduleLocalTrigger = (reminder) => {
+    const when = new Date(reminder.date).getTime();
+    const ms = when - Date.now();
+    if (ms <= 0) return triggerLocalReminder(reminder);
+    setTimeout(() => triggerLocalReminder(reminder), ms);
+  };
+
+  const triggerLocalReminder = (reminder) => {
+    // show toast and push to notifications
+    try {
+      setNotifications(prev => [{ id: reminder.id, type: 'reminder', createdAt: new Date().toISOString(), meta: { text: reminder.text }, local: true }, ...prev]);
+      toast(`Lembrete: ${reminder.text}`, { icon: '⏰' });
+    } catch (err) {}
+    try {
+      // mark fired in localStorage
+      const raw = localStorage.getItem('localReminders');
+      if (!raw) return;
+      const items = JSON.parse(raw) || [];
+      const updated = items.map(i => i.id === reminder.id ? { ...i, fired: true } : i);
+      localStorage.setItem('localReminders', JSON.stringify(updated));
+    } catch (err) {}
+  };
 
   const loadAllData = async () => {
     try {
@@ -394,6 +459,37 @@ function Dashboard() {
     navigate('/login');
   };
 
+  const handleScheduleSave = async () => {
+    if (!reminderTextLocal || !reminderDateLocal) return alert('Preencha texto e data.');
+    const id = 'local-' + Date.now();
+    const obj = { id, text: reminderTextLocal, date: reminderDateLocal, fired: false };
+    try {
+      const raw = localStorage.getItem('localReminders');
+      const items = raw ? JSON.parse(raw) : [];
+      items.push(obj);
+      localStorage.setItem('localReminders', JSON.stringify(items));
+      scheduleLocalTrigger(obj);
+
+      // If user chose to notify community, call backend schedule placeholder
+      if (notifyCommunity) {
+        try {
+          await notificationAPI.schedule({ userId: user?.id, remindAt: obj.date, meta: { text: obj.text } });
+        } catch (err) {
+          console.warn('Backend scheduling not available or failed', err);
+        }
+      }
+
+      setShowScheduleModal(false);
+      setReminderTextLocal('');
+      setReminderDateLocal('');
+      setNotifyCommunity(false);
+      // Inform user
+      setNotifications(prev => [{ id, type: 'reminder-scheduled', createdAt: new Date().toISOString(), meta: { text: obj.text, date: obj.date }, local: true }, ...prev]);
+    } catch (err) {
+      console.error('Erro ao salvar lembrete local', err);
+    }
+  };
+
   const toggleTag = (tagId) => {
     setSelectedTags(prev => 
       prev.includes(tagId) 
@@ -547,6 +643,9 @@ function Dashboard() {
               <button className="notif-btn" onClick={() => setActiveTab('notifications')}>
                 🔔 {notifications.filter(n => !n.read).length}
               </button>
+              <button className="btn-secondary" style={{ marginLeft: 8 }} onClick={() => setShowScheduleModal(true)}>
+                ⏰ Agendar lembrete
+              </button>
             </div>
             <div className="user-avatar" onClick={goToUserProfile} style={{ cursor: 'pointer' }} title="Clique para ver perfil">
               {user?.username?.substring(0, 2).toUpperCase() || 'US'}
@@ -643,6 +742,26 @@ function Dashboard() {
         
         {/* Área Principal */}
         <div className="dashboard-main">
+          {/* Schedule Reminder Modal */}
+          {showScheduleModal && (
+            <div className="modal-overlay">
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="modal-card">
+                <h3>⏰ Agendar Lembrete</h3>
+                <div style={{ display: 'grid', gap: 8 }}>
+                  <input placeholder="Texto do lembrete" value={reminderTextLocal} onChange={(e) => setReminderTextLocal(e.target.value)} className="chronicle-input" />
+                  <input type="datetime-local" value={reminderDateLocal} onChange={(e) => setReminderDateLocal(e.target.value)} className="chronicle-input" />
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <input type="checkbox" checked={notifyCommunity} onChange={(e) => setNotifyCommunity(e.target.checked)} />
+                    <span style={{ color: '#94a3b8', fontSize: 13 }}>Notificar comunidade (se suportado pelo backend)</span>
+                  </label>
+                </div>
+                <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+                  <button className="chronicle-button" onClick={handleScheduleSave}>Salvar</button>
+                  <button className="btn-secondary" onClick={() => setShowScheduleModal(false)}>Cancelar</button>
+                </div>
+              </motion.div>
+            </div>
+          )}
           {/* Cápsulas */}
           {activeTab === 'capsules' && (
             <motion.div
@@ -671,11 +790,11 @@ function Dashboard() {
                     </button>
                   </div>
                   
-                  <button 
-                    onClick={() => { resetForm(); setShowForm(!showForm); }} 
+                  <button
+                    onClick={() => navigate('/create')}
                     className="chronicle-button"
                   >
-                    {showForm ? 'Cancelar' : 'Nova Cápsula'}
+                    Nova Cápsula
                   </button>
                   <div className="search-container">
                     <svg className="search-icon" viewBox="0 0 24 24">
@@ -957,6 +1076,12 @@ function Dashboard() {
                       
                       {isMyOwnCapsule && (
                         <div className="capsule-actions">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); navigate(`/reveal/${capsule.id}`); }}
+                            className="chronicle-button"
+                          >
+                            Abrir
+                          </button>
                           <button
                             onClick={(e) => { e.stopPropagation(); handleEdit(capsule); }}
                             className="btn-secondary"
@@ -1441,6 +1566,7 @@ function Dashboard() {
                 setSelectedCapsule(capsule);
                 setActiveTab('detail');
               }}
+              newCapsuleId={newCapsuleId}
             />
           )}
 
