@@ -6,15 +6,16 @@ import '../styles/timeline.css';
 
 function TimelineView({ capsules = [], onCapsuleClick }) {
   const [hoveredId, setHoveredId] = useState(null);
-  const [timelineMode, setTimelineMode] = useState('vertical'); // vertical, horizontal
+  const [timelineMode, setTimelineMode] = useState('vertical');
 
   // Ordenar cápsulas por data de desbloqueio
   const sortedCapsules = [...capsules].sort((a, b) => 
     new Date(a.unlockDate) - new Date(b.unlockDate)
   );
 
-  const getUnlockStatus = (unlockDate) => {
-    return isPast(new Date(unlockDate)) ? 'unlocked' : 'locked';
+  const getUnlockStatus = (capsule) => {
+    // Usar o campo isUnlocked do servidor como fonte de verdade
+    return capsule.isUnlocked ? 'unlocked' : 'locked';
   };
 
   const getDaysUntilUnlock = (unlockDate) => {
@@ -23,6 +24,15 @@ function TimelineView({ capsules = [], onCapsuleClick }) {
     const days = Math.ceil((unlock - now) / (1000 * 60 * 60 * 24));
     return days > 0 ? days : 0;
   };
+
+  // Filtrar estatísticas corretamente
+  const lockedCount = sortedCapsules.filter(c => !c.isUnlocked).length;
+  const unlockedCount = sortedCapsules.filter(c => c.isUnlocked).length;
+  const daysUntilNext = sortedCapsules
+    .filter(c => !c.isUnlocked)
+    .map(c => getDaysUntilUnlock(c.unlockDate))
+    .filter(d => d > 0);
+  const minDays = daysUntilNext.length > 0 ? Math.min(...daysUntilNext) : 0;
 
   return (
     <div className="timeline-container">
@@ -48,7 +58,7 @@ function TimelineView({ capsules = [], onCapsuleClick }) {
         // Timeline Vertical
         <div className="timeline-vertical">
           {sortedCapsules.map((capsule, index) => {
-            const status = getUnlockStatus(capsule.unlockDate);
+            const status = getUnlockStatus(capsule);
             const daysLeft = getDaysUntilUnlock(capsule.unlockDate);
             
             return (
@@ -77,18 +87,21 @@ function TimelineView({ capsules = [], onCapsuleClick }) {
                       />
                       <h3>{capsule.title}</h3>
                       <span className={`status-badge ${status}`}>
-                        {status === 'unlocked' ? ' Desbloqueado' : ` ${daysLeft}d`}
+                        {status === 'unlocked' ? '🔓 Desbloqueado' : `🔒 ${daysLeft}d`}
                       </span>
                     </div>
 
                     <p className="card-preview">
-                      {capsule.content.substring(0, 100)}...
+                      {status === 'unlocked' 
+                        ? capsule.content.substring(0, 100) + '...'
+                        : '🔒 Conteúdo bloqueado até ' + format(new Date(capsule.unlockDate), 'dd/MM/yyyy', { locale: ptBR })
+                      }
                     </p>
 
                     <div className="card-meta">
                       <span>📅 {format(new Date(capsule.unlockDate), 'dd MMM yyyy', { locale: ptBR })}</span>
-                      {capsule.categoryId && <span>📁 Categoria</span>}
-                      {capsule.viewCount > 0 && <span> {capsule.viewCount} views</span>}
+                      {capsule.category && <span>📁 {capsule.category.name}</span>}
+                      {capsule.viewCount > 0 && <span>👁️ {capsule.viewCount} views</span>}
                     </div>
 
                     {hoveredId === capsule.id && (
@@ -97,7 +110,7 @@ function TimelineView({ capsules = [], onCapsuleClick }) {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                       >
-                        Ver Detalhes →
+                        {status === 'unlocked' ? 'Ver Detalhes →' : 'Ver Informações →'}
                       </motion.div>
                     )}
                   </motion.div>
@@ -111,7 +124,7 @@ function TimelineView({ capsules = [], onCapsuleClick }) {
         <div className="timeline-horizontal">
           <div className="timeline-track">
             {sortedCapsules.map((capsule, index) => {
-              const status = getUnlockStatus(capsule.unlockDate);
+              const status = getUnlockStatus(capsule);
               const daysLeft = getDaysUntilUnlock(capsule.unlockDate);
 
               return (
@@ -145,7 +158,7 @@ function TimelineView({ capsules = [], onCapsuleClick }) {
                       <h4>{capsule.title}</h4>
                       <p>{format(new Date(capsule.unlockDate), 'dd MMM yyyy', { locale: ptBR })}</p>
                       <span className={`badge ${status}`}>
-                        {status === 'unlocked' ? '' : ` ${daysLeft}d`}
+                        {status === 'unlocked' ? '🔓 Desbloqueado' : `🔒 ${daysLeft}d`}
                       </span>
                     </motion.div>
                   )}
@@ -158,30 +171,30 @@ function TimelineView({ capsules = [], onCapsuleClick }) {
 
       <div className="timeline-stats">
         <div className="stat">
-          <span className="stat-icon"></span>
+          <span className="stat-icon">📦</span>
           <div>
             <span className="stat-number">{sortedCapsules.length}</span>
             <span className="stat-label">Total de Cápsulas</span>
           </div>
         </div>
         <div className="stat">
-          <span className="stat-icon"></span>
+          <span className="stat-icon">🔒</span>
           <div>
-            <span className="stat-number">{sortedCapsules.filter(c => !getUnlockStatus(c.unlockDate) === 'unlocked').length}</span>
+            <span className="stat-number">{lockedCount}</span>
             <span className="stat-label">Bloqueadas</span>
           </div>
         </div>
         <div className="stat">
-          <span className="stat-icon"></span>
+          <span className="stat-icon">🔓</span>
           <div>
-            <span className="stat-number">{sortedCapsules.filter(c => getUnlockStatus(c.unlockDate) === 'unlocked').length}</span>
+            <span className="stat-number">{unlockedCount}</span>
             <span className="stat-label">Desbloqueadas</span>
           </div>
         </div>
         <div className="stat">
-          <span className="stat-icon"></span>
+          <span className="stat-icon">⏰</span>
           <div>
-            <span className="stat-number">{Math.min(...sortedCapsules.map(c => getDaysUntilUnlock(c.unlockDate)).filter(d => d > 0)) || 0}</span>
+            <span className="stat-number">{minDays}</span>
             <span className="stat-label">Dias até próximo</span>
           </div>
         </div>

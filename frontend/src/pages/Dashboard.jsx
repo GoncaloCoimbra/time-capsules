@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, 
   ResponsiveContainer, PieChart, Pie, Cell,
-  AreaChart, Area
+  AreaChart, Area, BarChart, Bar
 } from 'recharts';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -62,6 +62,7 @@ function Dashboard() {
   const [showTimeTravel, setShowTimeTravel] = useState(false);
   const [leaderboard, setLeaderboard] = useState([]);
   const [achievements, setAchievements] = useState([]);
+  const [capsuleScope, setCapsuleScope] = useState('mine'); // 'mine' ou 'public'
   
   // Delete confirmation states
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -122,55 +123,57 @@ function Dashboard() {
 
   // Load data from API
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        
-        // Load user's capsules
-        const capsulesRes = await capsuleAPI.getAll();
-        setCapsules(capsulesRes.data.capsules || []);
-        
-        // Load categories
-        const categoriesRes = await categoryAPI.getAll();
-        setCategories(categoriesRes.data.categories || []);
-        
-        // Load tags
-        const tagsRes = await tagAPI.getAll();
-        setTags(tagsRes.data.tags || []);
-        
-        // Load statistics
+    loadAllData();
+  }, [capsuleScope]);
+
+  const loadAllData = async () => {
+    try {
+      setLoading(true);
+      
+      // Load capsules based on scope
+      const capsulesRes = await capsuleAPI.getAll(capsuleScope === 'public' ? { scope: 'public' } : {});
+      setCapsules(capsulesRes.data.capsules || []);
+      
+      // Load categories - SEMPRE carregar as categorias do usuário
+      const categoriesRes = await categoryAPI.getAll();
+      setCategories(categoriesRes.data.categories || []);
+      
+      // Load tags
+      const tagsRes = await tagAPI.getAll();
+      setTags(tagsRes.data.tags || []);
+      
+      // Load statistics (apenas para minhas cápsulas)
+      if (capsuleScope === 'mine') {
         const statsRes = await capsuleAPI.getStatistics();
         setStatistics(statsRes.data.statistics);
-        
-        // Load community stats
-        const communityStatsRes = await communityAPI.getStats();
-        setCommunityStats(communityStatsRes.data);
-        
-        // Load leaderboard
-        const leaderboardRes = await communityAPI.getLeaderboard({ type: 'capsules' });
-        setLeaderboard(leaderboardRes.data.leaderboard || []);
-        
-        // Load trending techs
-        const trendingRes = await communityAPI.getTrendingTechs();
-        setTrendingTech(trendingRes.data.trending || []);
-
-        // Load notifications
-        try {
-          const notifRes = await notificationAPI.list();
-          setNotifications(notifRes.data.notifications || []);
-        } catch (err) {
-          // ignore
-        }
-        
-        setLoading(false);
-      } catch (error) {
-        console.error('Error loading data:', error);
-        setLoading(false);
       }
-    };
-    
-    loadData();
-  }, []);
+      
+      // Load community stats
+      const communityStatsRes = await communityAPI.getStats();
+      setCommunityStats(communityStatsRes.data);
+      
+      // Load leaderboard
+      const leaderboardRes = await communityAPI.getLeaderboard({ type: 'capsules' });
+      setLeaderboard(leaderboardRes.data.leaderboard || []);
+      
+      // Load trending techs
+      const trendingRes = await communityAPI.getTrendingTechs();
+      setTrendingTech(trendingRes.data.trending || []);
+
+      // Load notifications
+      try {
+        const notifRes = await notificationAPI.list();
+        setNotifications(notifRes.data.notifications || []);
+      } catch (err) {
+        // ignore
+      }
+      
+      setLoading(false);
+    } catch (error) {
+      console.error('Error loading data:', error);
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     filterAndSortCapsules();
@@ -222,12 +225,12 @@ function Dashboard() {
       }
       
       // Reload capsules
-      const res = await capsuleAPI.getAll();
-      setCapsules(res.data.capsules || []);
+      await loadAllData();
       
       resetForm();
     } catch (error) {
       console.error('Error saving capsule:', error);
+      alert('Erro ao salvar cápsula: ' + (error.response?.data?.message || error.message));
     } finally {
       setLoading(false);
     }
@@ -240,9 +243,11 @@ function Dashboard() {
       const res = await categoryAPI.getAll();
       setCategories(res.data.categories || []);
       setCategoryName('');
+      setCategoryColor('#e2b714');
       setShowCategoryForm(false);
     } catch (error) {
       console.error('Error creating category:', error);
+      alert('Erro ao criar categoria: ' + (error.response?.data?.message || error.message));
     }
   };
 
@@ -282,13 +287,7 @@ function Dashboard() {
     setLoading(true);
     try {
       await capsuleAPI.delete(capsuleId);
-      // reload capsules and statistics to keep UI consistent with server
-      const [capsRes, statsRes] = await Promise.all([
-        capsuleAPI.getAll(),
-        capsuleAPI.getStatistics()
-      ]);
-      setCapsules(capsRes.data.capsules || []);
-      setStatistics(statsRes.data.statistics);
+      await loadAllData();
       setShowDeleteConfirm(false);
       setCapsuleToDelete(null);
       if (selectedCapsule?.id === capsuleId) setSelectedCapsule(null);
@@ -306,7 +305,6 @@ function Dashboard() {
 
   const toggleFavorite = async (id) => {
     try {
-      // optimistic UI
       setCapsules(prev => prev.map(c => 
         c.id === id ? { ...c, isFavorited: !c.isFavorited } : c
       ));
@@ -319,7 +317,6 @@ function Dashboard() {
       ));
     } catch (error) {
       console.error('Error toggling favorite:', error);
-      // revert optimistic change
       setCapsules(prev => prev.map(c => 
         c.id === id ? { ...c, isFavorited: !(c.isFavorited) } : c
       ));
@@ -386,7 +383,6 @@ function Dashboard() {
     setEditingId(null);
   };
 
-  // Nova função para navegação ao perfil
   const goToUserProfile = () => {
     if (user?.id) {
       navigate(`/profile/${user.id}`);
@@ -416,13 +412,13 @@ function Dashboard() {
 
   const formatTimeAgo = (date) => {
     const seconds = Math.floor((new Date() - new Date(date)) / 1000);
-    if (seconds < 60) return 'just now';
+    if (seconds < 60) return 'agora mesmo';
     const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m ago`;
+    if (minutes < 60) return `há ${minutes}m`;
     const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours}h ago`;
+    if (hours < 24) return `há ${hours}h`;
     const days = Math.floor(hours / 24);
-    return `${days}d ago`;
+    return `há ${days}d`;
   };
 
   const CodeBlock = ({ code, language }) => {
@@ -456,8 +452,6 @@ function Dashboard() {
       </div>
     );
   };
-
-  const techSuggestions = ['React', 'Vue', 'Node.js', 'Python', 'TypeScript', 'AI/ML', 'Web3', 'Blockchain'];
 
   return (
     <div className="time-chronicle-dashboard">
@@ -523,15 +517,16 @@ function Dashboard() {
       
       {/* Header */}
       <div className="dashboard-header">
-        <div className="header-left">  <div className="time-glyph"> 
+        <div className="header-left">
+          <div className="time-glyph"> 
             <div className="glyph-circle">
               <div className="glyph-hand hour"></div>
               <div className="glyph-hand minute"></div>
             </div>
           </div>
           <div className="header-text">
-            <h1 className="chronicle-title">Time Chronicle</h1>  
-            <p className="chronicle-subtitle">Dashboard Temporal</p>  vou ensinar como por o logo
+            <h1 className="chronicle-title">Time Chronicle</h1>
+            <p className="chronicle-subtitle">Dashboard Temporal</p>
           </div>
         </div>
         
@@ -545,7 +540,7 @@ function Dashboard() {
                 month: 'long'
               })}
             </div>
-          </div> 
+          </div>
           
           <div className="user-info">
             <div className="notifications">
@@ -553,7 +548,6 @@ function Dashboard() {
                 🔔 {notifications.filter(n => !n.read).length}
               </button>
             </div>
-            {/* Avatar modificado para navegar ao perfil */}
             <div className="user-avatar" onClick={goToUserProfile} style={{ cursor: 'pointer' }} title="Clique para ver perfil">
               {user?.username?.substring(0, 2).toUpperCase() || 'US'}
             </div>
@@ -572,7 +566,7 @@ function Dashboard() {
       
       {/* Conteúdo Principal */}
       <div className="dashboard-content">
-        {/* Sidebar */}
+        {/* Sidebar - AGORA APENAS COM NAVEGAÇÃO */}
         <div className="dashboard-sidebar">
           <nav className="sidebar-nav">
             <button 
@@ -645,21 +639,6 @@ function Dashboard() {
               <span>Comunidade</span>
             </button>
           </nav>
-          
-          <div className="sidebar-stats">
-            <div className="stat-item">
-              <span className="stat-label">Cápsulas Totais</span>
-              <span className="stat-value">{capsules.length}</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">Bloqueadas</span>
-              <span className="stat-value">{capsules.filter(c => !c.isUnlocked).length}</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">Desbloqueadas</span>
-              <span className="stat-value">{capsules.filter(c => c.isUnlocked).length}</span>
-            </div>
-          </div>
         </div>
         
         {/* Área Principal */}
@@ -672,8 +651,26 @@ function Dashboard() {
               className="chronicle-card main-card"
             >
               <div className="card-header">
-                <h2>Suas Cápsulas Temporais</h2>
+                <h2>
+                  {capsuleScope === 'mine' ? 'Suas Cápsulas Temporais' : 'Cápsulas Públicas da Comunidade'}
+                </h2>
                 <div className="card-actions">
+                  {/* Toggle entre Minhas Cápsulas e Cápsulas Públicas */}
+                  <div className="scope-toggle" style={{ marginRight: '12px' }}>
+                    <button 
+                      className={`scope-btn ${capsuleScope === 'mine' ? 'active' : ''}`}
+                      onClick={() => setCapsuleScope('mine')}
+                    >
+                      Minhas
+                    </button>
+                    <button 
+                      className={`scope-btn ${capsuleScope === 'public' ? 'active' : ''}`}
+                      onClick={() => setCapsuleScope('public')}
+                    >
+                      Públicas
+                    </button>
+                  </div>
+                  
                   <button 
                     onClick={() => { resetForm(); setShowForm(!showForm); }} 
                     className="chronicle-button"
@@ -696,7 +693,7 @@ function Dashboard() {
               </div>
               
               {/* Formulário */}
-              {showForm && (
+              {showForm && capsuleScope === 'mine' && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
@@ -742,7 +739,17 @@ function Dashboard() {
                         <label>Categoria</label>
                         {categories.length === 0 ? (
                           <div className="no-categories">
-                            <small>Nenhuma categoria encontrada. <button type="button" className="link-btn" onClick={() => setShowCategoryForm(true)}>Criar categoria</button></small>
+                            <small style={{ display: 'block', marginBottom: '8px', color: '#94a3b8' }}>
+                              Nenhuma categoria encontrada. 
+                              <button 
+                                type="button" 
+                                className="link-btn" 
+                                onClick={() => setShowCategoryForm(true)}
+                                style={{ marginLeft: '4px', color: '#e2b714', textDecoration: 'underline', cursor: 'pointer' }}
+                              >
+                                Criar categoria
+                              </button>
+                            </small>
                             <select disabled className="chronicle-input">
                               <option>— Nenhuma disponível —</option>
                             </select>
@@ -759,6 +766,16 @@ function Dashboard() {
                             ))}
                           </select>
                         )}
+                        {categories.length > 0 && (
+                          <button 
+                            type="button" 
+                            className="link-btn" 
+                            onClick={() => setShowCategoryForm(true)}
+                            style={{ marginTop: '8px', fontSize: '12px', color: '#e2b714' }}
+                          >
+                            + Adicionar nova categoria
+                          </button>
+                        )}
                       </div>
                       
                       <div className="form-group">
@@ -769,6 +786,25 @@ function Dashboard() {
                           onChange={(e) => setColor(e.target.value)}
                           className="color-input"
                         />
+                      </div>
+                      
+                      {/* NOVO: Toggle Público/Privado */}
+                      <div className="form-group full-width">
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                          <input
+                            type="checkbox"
+                            checked={!isPrivate}
+                            onChange={(e) => setIsPrivate(!e.target.checked)}
+                            style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                          />
+                          <span>Tornar esta cápsula pública após desbloqueio</span>
+                        </label>
+                        <small style={{ display: 'block', marginTop: '4px', color: '#94a3b8' }}>
+                          {isPrivate 
+                            ? '🔒 Esta cápsula será privada - apenas você poderá vê-la' 
+                            : '🌍 Esta cápsula será pública após desbloqueio - outros usuários poderão vê-la'
+                          }
+                        </small>
                       </div>
                     </div>
                     
@@ -784,97 +820,598 @@ function Dashboard() {
                 </motion.div>
               )}
               
-              {/* Lista de Cápsulas */}
-              <div className="capsules-grid">
-                {filteredCapsules.map((capsule) => (
-                  <div 
-                    key={capsule.id} 
-                    className="capsule-card"
-                    style={{ borderLeftColor: capsule.color }}
-                    onClick={() => setSelectedCapsule(capsule)}
-                  >
-                    <div className="capsule-header">
-                      <div className="capsule-icon">
-                        <img
-                          src={capsule.metadata?.authorAvatar}
-                          alt={`Avatar de ${capsule.metadata?.author}`}
-                          className="avatar avatar-sm"
-                          onError={(e) => { e.target.onerror = null; e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${capsule.creatorId || capsule.creator?.id || 'user'}`; }}
+              {/* Modal para criar categoria */}
+              {showCategoryForm && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  className="capsule-form"
+                  style={{ marginTop: '16px', padding: '16px', background: 'rgba(30, 41, 59, 0.5)', borderRadius: '8px' }}
+                >
+                  <h4>Nova Categoria</h4>
+                  <form onSubmit={handleCategorySubmit}>
+                    <div className="form-grid">
+                      <div className="form-group">
+                        <label>Nome da Categoria</label>
+                        <input
+                          type="text"
+                          value={categoryName}
+                          onChange={(e) => setCategoryName(e.target.value)}
+                          required
+                          className="chronicle-input"
+                          placeholder="Ex: Projetos, Pessoal..."
                         />
                       </div>
-                      <div className="capsule-info">
-                        <h3>{capsule.title}</h3>
-                        <span className="capsule-author">Por {capsule.metadata?.author}</span>
+                      <div className="form-group">
+                        <label>Cor</label>
+                        <input
+                          type="color"
+                          value={categoryColor}
+                          onChange={(e) => setCategoryColor(e.target.value)}
+                          className="color-input"
+                        />
                       </div>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); toggleFavorite(capsule.id); }}
-                        className={`favorite-btn ${(capsule.isFavorited || capsule.isFavorite) ? 'active' : ''}`}
-                      >
-                        {(capsule.isFavorited || capsule.isFavorite) ? '★' : '☆'}
+                    </div>
+                    <div className="form-actions">
+                      <button type="submit" className="chronicle-button">Criar Categoria</button>
+                      <button type="button" onClick={() => setShowCategoryForm(false)} className="btn-secondary">
+                        Cancelar
                       </button>
                     </div>
-                    
-                    <div className="capsule-tags">
-                      {capsule.category && (
-                        <span className="tag" style={{ background: capsule.category.color }}>
-                          {capsule.category.name}
-                        </span>
-                      )}
-                      {capsule.tags?.map(tag => (
-                        <span key={tag.id} className="tag secondary">
-                          {tag.name}
-                        </span>
-                      ))}
-                      <span className={`tag ${capsule.isUnlocked ? 'unlocked' : 'locked'}`}>
-                        {capsule.isUnlocked ? 'Desbloqueada' : 'Bloqueada'}
-                      </span>
-                    </div>
-                    
-                    <div className="capsule-details">
-                      <div className="detail">
-                        <span>Desbloqueia:</span>
-                        <strong>{new Date(capsule.unlockDate).toLocaleDateString('pt-PT')}</strong>
-                      </div>
-                      <div className="detail">
-                        <span>Visualizações:</span>
-                        <strong>{capsule.viewCount}</strong>
-                      </div>
-                      <div className="detail">
-                        <span>Likes:</span>
-                        <strong>{capsule.likes || 0}</strong>
-                      </div>
-                    </div>
-                    
-                    {capsule.isUnlocked && (
-                      <div className="capsule-preview">
-                        <p>{capsule.content.substring(0, 100)}...</p>
-                      </div>
-                    )}
-                    
-                    <div className="capsule-actions">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleEdit(capsule); }}
-                        className="btn-secondary"
-                      >
-                        Editar
-                      </button>
-                      <button
-                        onClick={(e) => { 
-                          e.stopPropagation(); 
-                          confirmDelete(capsule.id, capsule.title);
-                        }}
-                        className="btn-danger"
-                      >
-                        Excluir
-                      </button>
-                    </div>
+                  </form>
+                </motion.div>
+              )}
+              
+              {/* Lista de Cápsulas */}
+              <div className="capsules-grid">
+                {filteredCapsules.length === 0 && (
+                  <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
+                    <p>
+                      {capsuleScope === 'mine' 
+                        ? 'Você ainda não tem cápsulas. Crie sua primeira!' 
+                        : 'Nenhuma cápsula pública disponível no momento.'
+                      }
+                    </p>
                   </div>
-                ))}
+                )}
+                {filteredCapsules.map((capsule) => {
+                  const isMyOwnCapsule = capsule.creatorId === user?.id;
+                  
+                  return (
+                    <div 
+                      key={capsule.id} 
+                      className="capsule-card"
+                      style={{ borderLeftColor: capsule.color }}
+                      onClick={() => setSelectedCapsule(capsule)}
+                    >
+                      <div className="capsule-header">
+                        <div className="capsule-icon">
+                          <img
+                            src={capsule.metadata?.authorAvatar}
+                            alt={`Avatar de ${capsule.metadata?.author}`}
+                            className="avatar avatar-sm"
+                            onError={(e) => { 
+                              e.target.onerror = null; 
+                              e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${capsule.creatorId || capsule.creator?.id || 'user'}`; 
+                            }}
+                          />
+                        </div>
+                        <div className="capsule-info">
+                          <h3>{capsule.title}</h3>
+                          <span className="capsule-author">
+                            Por {capsule.metadata?.author}
+                            {isMyOwnCapsule && ' (Você)'}
+                          </span>
+                        </div>
+                        {isMyOwnCapsule && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); toggleFavorite(capsule.id); }}
+                            className={`favorite-btn ${(capsule.isFavorited || capsule.isFavorite) ? 'active' : ''}`}
+                          >
+                            {(capsule.isFavorited || capsule.isFavorite) ? '★' : '☆'}
+                          </button>
+                        )}
+                      </div>
+                      
+                      <div className="capsule-tags">
+                        {capsule.category && (
+                          <span className="tag" style={{ background: capsule.category.color }}>
+                            {capsule.category.name}
+                          </span>
+                        )}
+                        {capsule.tags?.map(tag => (
+                          <span key={tag.id} className="tag secondary">
+                            {tag.name}
+                          </span>
+                        ))}
+                        <span className={`tag ${capsule.isUnlocked ? 'unlocked' : 'locked'}`}>
+                          {capsule.isUnlocked ? '🔓 Desbloqueada' : '🔒 Bloqueada'}
+                        </span>
+                        {!capsule.isPrivate && (
+                          <span className="tag" style={{ background: '#1f7a8c' }}>
+                            🌍 Pública
+                          </span>
+                        )}
+                      </div>
+                      
+                      <div className="capsule-details">
+                        <div className="detail">
+                          <span>Desbloqueia:</span>
+                          <strong>{new Date(capsule.unlockDate).toLocaleDateString('pt-PT')}</strong>
+                        </div>
+                        <div className="detail">
+                          <span>Visualizações:</span>
+                          <strong>{capsule.viewCount || 0}</strong>
+                        </div>
+                        <div className="detail">
+                          <span>Likes:</span>
+                          <strong>{capsule.likes || 0}</strong>
+                        </div>
+                      </div>
+                      
+                      {capsule.isUnlocked && (
+                        <div className="capsule-preview">
+                          <p>{capsule.content.substring(0, 100)}...</p>
+                        </div>
+                      )}
+                      
+                      {isMyOwnCapsule && (
+                        <div className="capsule-actions">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleEdit(capsule); }}
+                            className="btn-secondary"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            onClick={(e) => { 
+                              e.stopPropagation(); 
+                              confirmDelete(capsule.id, capsule.title);
+                            }}
+                            className="btn-danger"
+                          >
+                            Excluir
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </motion.div>
           )}
           
-          {/* Notifications */}
+          {/* Estatísticas */}
+          {activeTab === 'statistics' && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              className="chronicle-card main-card"
+            >
+              <h2>Estatísticas Temporais</h2>
+              <div className="stats-grid">
+                <div className="stat-card">
+                  <div className="stat-icon">📊</div>
+                  <div className="stat-content">
+                    <h3>{capsules.length}</h3>
+                    <p>Cápsulas Totais</p>
+                  </div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-icon">🔒</div>
+                  <div className="stat-content">
+                    <h3>{capsules.filter(c => !c.isUnlocked).length}</h3>
+                    <p>Bloqueadas</p>
+                  </div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-icon">🔓</div>
+                  <div className="stat-content">
+                    <h3>{capsules.filter(c => c.isUnlocked).length}</h3>
+                    <p>Desbloqueadas</p>
+                  </div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-icon">👁️</div>
+                  <div className="stat-content">
+                    <h3>{capsules.reduce((sum, c) => sum + (c.viewCount || 0), 0)}</h3>
+                    <p>Visualizações</p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Gráficos adicionais de estatísticas */}
+              {statistics && (
+                <div className="advanced-stats">
+                  <h3>Estatísticas Avançadas</h3>
+                  <div className="charts-grid">
+                    <div className="chart-container">
+                      <h4>Desbloqueios por Mês</h4>
+                      <ResponsiveContainer width="100%" height={200}>
+                        <AreaChart data={statistics.unlocksByMonth || []}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                          <XAxis dataKey="month" stroke="#94a3b8" />
+                          <YAxis stroke="#94a3b8" />
+                          <Tooltip 
+                            contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155' }}
+                            labelStyle={{ color: '#e2b714' }}
+                          />
+                          <Area 
+                            type="monotone" 
+                            dataKey="count" 
+                            stroke="#e2b714" 
+                            fill="#e2b714" 
+                            fillOpacity={0.3} 
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                    
+                    <div className="chart-container">
+                      <h4>Distribuição por Categoria</h4>
+                      <ResponsiveContainer width="100%" height={200}>
+                        <PieChart>
+                          <Pie
+                            data={statistics.categories || []}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            label={(entry) => entry.name}
+                            outerRadius={80}
+                            fill="#8884d8"
+                            dataKey="count"
+                          >
+                            {(statistics.categories || []).map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color || '#e2b714'} />
+                            ))}
+                          </Pie>
+                          <Tooltip 
+                            contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155' }}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+          
+          {/* Viagem Temporal - ESTILO ATUALIZADO */}
+          {activeTab === 'time-travel' && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              className="chronicle-card main-card"
+            >
+              <div className="time-travel-header">
+                <h2>🌌 Viagem Temporal</h2>
+                <p className="card-subtitle">Explore o futuro e descubra cápsulas que serão desbloqueadas</p>
+              </div>
+              
+              <div className="time-travel-machine">
+                <div className="time-selector">
+                  <div className="time-input-wrapper">
+                    <input
+                      type="datetime-local"
+                      value={timeTravelDate}
+                      onChange={(e) => setTimeTravelDate(e.target.value)}
+                      className="chronicle-input"
+                      min={new Date().toISOString().slice(0, 16)}
+                    />
+                  </div>
+                  
+                  <div className="time-machine-display">
+                    <div className="time-display-value">
+                      {timeTravelDate 
+                        ? new Date(timeTravelDate).toLocaleDateString('pt-PT', {
+                            day: '2-digit',
+                            month: 'long',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })
+                        : '--/--/---- --:--'}
+                    </div>
+                  </div>
+                  
+                  <div className="time-machine-controls">
+                    <button 
+                      onClick={performTimeTravel}
+                      className="chronicle-button"
+                      disabled={!timeTravelDate}
+                    >
+                      🚀 Iniciar Viagem
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              {showTimeTravel && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  className="time-travel-results"
+                >
+                  <h3 className="section-title">⚡ Cápsulas Encontradas</h3>
+                  <p style={{ color: '#94a3b8', marginBottom: '30px' }}>
+                    {timeTravelResults.length > 0 
+                      ? `Encontradas ${timeTravelResults.length} cápsulas que seriam desbloqueadas nesta data:`
+                      : 'Nenhuma cápsula seria desbloqueada nesta data.'
+                    }
+                  </p>
+                  
+                  {timeTravelResults.length > 0 && (
+                    <div className="time-capsules-preview">
+                      {timeTravelResults.map((capsule) => (
+                        <div key={capsule.id} className="time-capsule-card">
+                          <div className="capsule-time-info">
+                            <div className="time-badge">
+                              <i>⏳</i>
+                              <span>Desbloqueia: {new Date(capsule.unlockDate).toLocaleDateString('pt-PT')}</span>
+                            </div>
+                            <div className="time-badge">
+                              <i>🎯</i>
+                              <span>Viagem: {new Date(timeTravelDate).toLocaleDateString('pt-PT')}</span>
+                            </div>
+                          </div>
+                          
+                          <h3 style={{ color: '#e2b714', marginBottom: '10px' }}>{capsule.title}</h3>
+                          
+                          <div className="capsule-tags">
+                            {capsule.category && (
+                              <span className="tag" style={{ background: capsule.category.color }}>
+                                {capsule.category.name}
+                              </span>
+                            )}
+                            <span className="tag" style={{ background: '#1f7a8c' }}>
+                              🚀 Viagem Temporal
+                            </span>
+                          </div>
+                          
+                          <div className="capsule-content-preview">
+                            <p>{capsule.content.substring(0, 180)}...</p>
+                          </div>
+                          
+                          <div className="time-travel-actions">
+                            <button 
+                              onClick={() => setSelectedCapsule(capsule)}
+                              className="btn-secondary"
+                              style={{ flex: 1 }}
+                            >
+                              👁️ Visualizar
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </motion.div>
+              )}
+              
+              <div style={{ marginTop: '40px', padding: '25px', background: 'rgba(226, 183, 20, 0.05)', borderRadius: '16px' }}>
+                <h3 style={{ color: '#e2b714', marginBottom: '15px' }}>📖 Como funciona a Viagem Temporal?</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
+                  <div>
+                    <h4 style={{ color: '#f1f5f9', marginBottom: '8px' }}>1. Selecione uma Data</h4>
+                    <p style={{ color: '#94a3b8', fontSize: '14px' }}>Escolha qualquer data futura para simular uma viagem no tempo.</p>
+                  </div>
+                  <div>
+                    <h4 style={{ color: '#f1f5f9', marginBottom: '8px' }}>2. Inicie a Viagem</h4>
+                    <p style={{ color: '#94a3b8', fontSize: '14px' }}>Clique em "Iniciar Viagem" para ver o que encontraria.</p>
+                  </div>
+                  <div>
+                    <h4 style={{ color: '#f1f5f9', marginBottom: '8px' }}>3. Explore as Cápsulas</h4>
+                    <p style={{ color: '#94a3b8', fontSize: '14px' }}>Veja quais cápsulas estariam desbloqueadas naquela data.</p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+          
+          {/* Trending - ESTILO ATUALIZADO */}
+          {activeTab === 'trending' && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              className="chronicle-card main-card"
+            >
+              <div className="trending-header">
+                <h2>📈 Trending & Tendências</h2>
+                <p className="card-subtitle">Descubra o que está em alta na comunidade Time Chronicle</p>
+              </div>
+              
+              <div className="trending-grid-modern">
+                <div className="trend-card-modern">
+                  <div className="trend-card-header">
+                    <div className="trend-title-section">
+                      <h3>🔥 Tecnologias em Alta</h3>
+                      <span className="trend-category">Desenvolvimento</span>
+                    </div>
+                    <div className="trend-stats">
+                      <div className={`trend-growth ${trendingTech.length > 0 ? 'positive' : ''}`}>
+                        {trendingTech.length > 0 ? '📈 +24%' : '--'}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div style={{ marginTop: '20px' }}>
+                    {trendingTech.length === 0 ? (
+                      <p style={{ color: '#94a3b8', textAlign: 'center' }}>Carregando tendências...</p>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                        {trendingTech.slice(0, 3).map((tech, index) => (
+                          <div key={tech.id || index} style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '12px',
+                            padding: '12px',
+                            background: 'rgba(30, 41, 59, 0.5)',
+                            borderRadius: '12px'
+                          }}>
+                            <div style={{ 
+                              width: '32px', 
+                              height: '32px', 
+                              background: 'linear-gradient(135deg, #e2b714, #1f7a8c)', 
+                              borderRadius: '8px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: '#0f172a',
+                              fontWeight: 'bold',
+                              fontSize: '14px'
+                            }}>
+                              #{index + 1}
+                            </div>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ 
+                                display: 'flex', 
+                                justifyContent: 'space-between', 
+                                alignItems: 'center',
+                                marginBottom: '4px'
+                              }}>
+                                <span style={{ fontWeight: '600', color: '#f1f5f9' }}>
+                                  {tech.name || tech.technology}
+                                </span>
+                                <span style={{ 
+                                  fontSize: '12px', 
+                                  color: '#10b981',
+                                  background: 'rgba(16, 185, 129, 0.1)',
+                                  padding: '2px 8px',
+                                  borderRadius: '10px'
+                                }}>
+                                  {tech.count || '0'} cápsulas
+                                </span>
+                              </div>
+                              <div style={{ fontSize: '12px', color: '#94a3b8' }}>
+                                {tech.description || 'Tecnologia popular na comunidade'}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="trend-metrics">
+                    <div className="metric">
+                      <span className="metric-value">{trendingTech.length}</span>
+                      <span className="metric-label">Tecnologias</span>
+                    </div>
+                    <div className="metric">
+                      <span className="metric-value">{communityStats?.totalPublicCapsules || 0}</span>
+                      <span className="metric-label">Cápsulas</span>
+                    </div>
+                    <div className="metric">
+                      <span className="metric-value">{communityStats?.totalUsers || 0}</span>
+                      <span className="metric-label">Usuários</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="trend-card-modern">
+                  <div className="trend-card-header">
+                    <div className="trend-title-section">
+                      <h3>🏆 Top da Semana</h3>
+                      <span className="trend-category">Comunidade</span>
+                    </div>
+                    <div className="trend-stats">
+                      <div className="trend-growth positive">
+                        🔥 Ativo
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="leaderboard-modern" style={{ marginTop: '20px' }}>
+                    <div className="leaderboard-header-modern">
+                      <span>Posição</span>
+                      <span>Usuário</span>
+                      <span>Cápsulas</span>
+                      <span>Pontos</span>
+                    </div>
+                    <div className="leaderboard-list-modern">
+                      {leaderboard.length === 0 ? (
+                        <div style={{ padding: '30px', textAlign: 'center', color: '#94a3b8' }}>
+                          Carregando leaderboard...
+                        </div>
+                      ) : (
+                        leaderboard.slice(0, 5).map((user, index) => (
+                          <div key={user.id} className="leaderboard-item-modern">
+                            <div className="leaderboard-rank">
+                              <span className={`${index < 3 ? 'top-rank' : ''}`}>
+                                #{index + 1}
+                              </span>
+                            </div>
+                            <div className="leaderboard-user-modern">
+                              <div className="user-avatar-modern">
+                                {user.username?.substring(0, 2).toUpperCase() || 'US'}
+                              </div>
+                              <div className="user-info-modern">
+                                <strong>{user.username}</strong>
+                                <span>{user.bio || 'Explorador Temporal'}</span>
+                              </div>
+                            </div>
+                            <div className="leaderboard-capsules">
+                              {user.capsuleCount || 0}
+                            </div>
+                            <div className="leaderboard-score">
+                              {user.score || 0}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="leaderboard-section">
+                <h3 className="section-title">🏅 Leaderboard Completo</h3>
+                <div className="leaderboard-modern">
+                  <div className="leaderboard-header-modern">
+                    <span>Posição</span>
+                    <span>Usuário</span>
+                    <span>Cápsulas</span>
+                    <span>Pontuação</span>
+                  </div>
+                  <div className="leaderboard-list-modern">
+                    {leaderboard.length === 0 ? (
+                      <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
+                        Nenhum dado disponível no momento
+                      </div>
+                    ) : (
+                      leaderboard.map((user, index) => (
+                        <div key={user.id} className="leaderboard-item-modern">
+                          <div className="leaderboard-rank">
+                            <span className={`${index < 3 ? 'top-rank' : ''}`}>
+                              #{index + 1}
+                            </span>
+                          </div>
+                          <div className="leaderboard-user-modern">
+                            <div className="user-avatar-modern">
+                              {user.username?.substring(0, 2).toUpperCase() || 'US'}
+                            </div>
+                            <div className="user-info-modern">
+                              <strong>{user.username}</strong>
+                              <span>{user.bio || 'Membro da comunidade'}</span>
+                            </div>
+                          </div>
+                          <div className="leaderboard-capsules">
+                            {user.capsuleCount || 0}
+                          </div>
+                          <div className="leaderboard-score">
+                            {user.score || 0}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+          
+          {/* Notificações */}
           {activeTab === 'notifications' && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="chronicle-card main-card">
               <h2>Notificações</h2>
@@ -893,154 +1430,6 @@ function Dashboard() {
                   </li>
                 ))}
               </ul>
-            </motion.div>
-          )}
-
-          {/* Estatísticas */}
-          {activeTab === 'statistics' && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="chronicle-card main-card"
-            >
-              <h2>Estatísticas Temporais</h2>
-              
-              {statistics ? (
-                <>
-                  <div className="stats-grid">
-                    <div className="stat-card">
-                      <div className="stat-icon">📊</div>
-                      <div className="stat-content">
-                        <h3>{statistics.totalCapsules}</h3>
-                        <p>Cápsulas Totais</p>
-                      </div>
-                    </div>
-                    
-                    <div className="stat-card">
-                      <div className="stat-icon"></div>
-                      <div className="stat-content">
-                        <h3>{statistics.lockedCapsules}</h3>
-                        <p>Bloqueadas</p>
-                      </div>
-                    </div>
-                    
-                    <div className="stat-card">
-                      <div className="stat-icon"></div>
-                      <div className="stat-content">
-                        <h3>{statistics.unlockedCapsules}</h3>
-                        <p>Desbloqueadas</p>
-                      </div>
-                    </div>
-                    
-                    <div className="stat-card">
-                      <div className="stat-icon"></div>
-                      <div className="stat-content">
-                        <h3>{statistics.totalViews}</h3>
-                        <p>Visualizações</p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="charts-container">
-                    {statistics.capsulesByMonth && statistics.capsulesByMonth.length > 0 && (
-                      <div className="chart-card">
-                        <h3>Atividade Mensal</h3>
-                        <ResponsiveContainer width="100%" height={200}>
-                          <AreaChart data={statistics.capsulesByMonth}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                            <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} />
-                            <YAxis stroke="#94a3b8" fontSize={12} />
-                            <Tooltip />
-                            <Area 
-                              type="monotone" 
-                              dataKey="count" 
-                              stroke="#e2b714" 
-                              fill="#e2b714" 
-                              fillOpacity={0.2} 
-                            />
-                          </AreaChart>
-                        </ResponsiveContainer>
-                      </div>
-                    )}
-                    
-                    {statistics.capsulesByCategory && statistics.capsulesByCategory.length > 0 && (
-                      <div className="chart-card">
-                        <h3>Distribuição por Categoria</h3>
-                        <ResponsiveContainer width="100%" height={200}>
-                          <PieChart>
-                            <Pie
-                              data={statistics.capsulesByCategory}
-                              cx="50%"
-                              cy="50%"
-                              labelLine={false}
-                              label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                              outerRadius={80}
-                              fill="#8884d8"
-                              dataKey="value"
-                            >
-                              {statistics.capsulesByCategory.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.color} />
-                              ))}
-                            </Pie>
-                            <Tooltip />
-                          </PieChart>
-                        </ResponsiveContainer>
-                      </div>
-                    )}
-                  </div>
-                </>
-              ) : (
-                <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
-                  <p>Carregando estatísticas...</p>
-                </div>
-              )}
-            </motion.div>
-          )}
-          
-          {/* Time Travel */}
-          {activeTab === 'time-travel' && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="chronicle-card main-card"
-            >
-              <h2>Máquina do Tempo</h2>
-              <p className="section-description">
-                Viaje para qualquer data no futuro para pré-visualizar quais cápsulas serão desbloqueadas
-              </p>
-              
-              <div className="time-travel-controls">
-                <input
-                  type="date"
-                  value={timeTravelDate}
-                  onChange={(e) => setTimeTravelDate(e.target.value)}
-                  min={format(new Date(), 'yyyy-MM-dd')}
-                  className="chronicle-input"
-                />
-                <button
-                  onClick={performTimeTravel}
-                  className="chronicle-button"
-                >
-                  Viajar no Tempo
-                </button>
-              </div>
-              
-              {showTimeTravel && (
-                <div className="time-travel-results">
-                  <h3>{timeTravelResults.length} cápsulas serão desbloqueadas</h3>
-                  <div className="results-grid">
-                    {timeTravelResults.map(capsule => (
-                      <div key={capsule.id} className="result-card">
-                        <h4>{capsule.title}</h4>
-                        <p>Por {capsule.metadata?.author}</p>
-                        <div className="result-actions">
-                          <button className="btn-success">Pré-visualizar</button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </motion.div>
           )}
           
@@ -1066,53 +1455,6 @@ function Dashboard() {
           {/* Community */}
           {activeTab === 'community' && (
             <DiscoverCommunity />
-          )}
-          
-          {/* Trending */}
-          {activeTab === 'trending' && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="chronicle-card main-card"
-            >
-              <h2>Tecnologias em Tendência</h2>
-              
-              <div className="trending-grid">
-                {trendingTech.map((tech, index) => (
-                  <div key={index} className="trend-card">
-                    <div className="trend-header">
-                      <h3>{tech.name}</h3>
-                      <span className={`trend-growth ${tech.growth > 0 ? 'positive' : 'negative'}`}>
-                        {tech.growth > 0 ? '+' : ''}{tech.growth}%
-                      </span>
-                    </div>
-                    <p>{tech.mentions} menções em cápsulas</p>
-                    <div className="trend-bar">
-                      <div 
-                        className="trend-fill"
-                        style={{ width: `${Math.min(tech.growth, 100)}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              
-              <div className="leaderboard-section">
-                <h3>Top Contribuidores</h3>
-                <div className="leaderboard">
-                  {leaderboard.map((user, index) => (
-                    <div key={user.id} className="leaderboard-item">
-                      <div className="rank">{index + 1}</div>
-                      <div className="user-info">
-                        <span className="username">{user.username}</span>
-                        <span className="user-stats">{user.capsules} cápsulas</span>
-                      </div>
-                      <div className="unlocked-count">{user.unlocked} desbloqueadas</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </motion.div>
           )}
         </div>
       </div>
@@ -1142,7 +1484,7 @@ function Dashboard() {
               </button>
               
               <div className="modal-content">
-                <div className="warning-icon">!</div>
+                <div className="warning-icon">⚠️</div>
                 <h2>Excluir Cápsula</h2>
                 <p>
                   Tem certeza que deseja excluir a cápsula <strong>"{capsuleToDelete.title}"</strong>? 
@@ -1159,8 +1501,9 @@ function Dashboard() {
                   <button
                     onClick={() => handleDelete(capsuleToDelete.id)}
                     className="btn-danger"
+                    disabled={loading}
                   >
-                    Excluir Cápsula
+                    {loading ? 'Excluindo...' : 'Excluir Cápsula'}
                   </button>
                 </div>
               </div>
@@ -1242,7 +1585,7 @@ function Dashboard() {
                   <div className="stat">
                     <span>Status:</span>
                     <strong className={selectedCapsule.isUnlocked ? 'unlocked' : 'locked'}>
-                      {selectedCapsule.isUnlocked ? 'Desbloqueada' : 'Bloqueada'}
+                      {selectedCapsule.isUnlocked ? '🔓 Desbloqueada' : '🔒 Bloqueada'}
                     </strong>
                   </div>
                 </div>
@@ -1252,14 +1595,16 @@ function Dashboard() {
                     onClick={() => toggleLike(selectedCapsule.id)}
                     className="btn-secondary"
                   >
-                    Curtir ({selectedCapsule.likes || 0})
+                    ❤️ Curtir ({selectedCapsule.likes || 0})
                   </button>
-                  <button
-                    onClick={() => confirmDelete(selectedCapsule.id, selectedCapsule.title)}
-                    className="btn-danger"
-                  >
-                    Excluir
-                  </button>
+                  {capsuleScope === 'mine' && (
+                    <button
+                      onClick={() => confirmDelete(selectedCapsule.id, selectedCapsule.title)}
+                      className="btn-danger"
+                    >
+                      Excluir
+                    </button>
+                  )}
                 </div>
               </div>
             </motion.div>

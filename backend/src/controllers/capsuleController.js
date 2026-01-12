@@ -7,19 +7,77 @@ const Like = require('../models/Like');
 const Favorite = require('../models/Favorite');
 const CapsuleView = require('../models/CapsuleView');
 const Notification = require('../models/Notification');
+const User = require('../models/User');
 const sequelize = require('../models/index');
 const { Op } = require('sequelize');
+
+// Função auxiliar para verificar e desbloquear cápsulas
+const checkAndUnlockCapsules = async (userId) => {
+  try {
+    const now = new Date();
+    const result = await Capsule.update(
+      { isUnlocked: true },
+      {
+        where: {
+          creatorId: userId,
+          isUnlocked: false,
+          unlockDate: { [Op.lte]: now }
+        }
+      }
+    );
+    
+    if (result[0] > 0) {
+      console.log(`✓ ${result[0]} cápsula(s) desbloqueada(s) para o usuário ${userId}`);
+    }
+    
+    return result[0];
+  } catch (error) {
+    console.error('Erro ao desbloquear cápsulas:', error);
+    return 0;
+  }
+};
+
+// Criar categorias padrão para novos usuários
+const createDefaultCategories = async (userId) => {
+  const defaultCategories = [
+    { name: 'Pessoal', color: '#e2b714', userId },
+    { name: 'Trabalho', color: '#1f7a8c', userId },
+    { name: 'Ideias', color: '#ff6b6b', userId },
+    { name: 'Metas', color: '#4ecdc4', userId },
+    { name: 'Memórias', color: '#95a5a6', userId }
+  ];
+
+  try {
+    const existingCategories = await Category.findAll({ where: { userId } });
+    
+    if (existingCategories.length === 0) {
+      await Category.bulkCreate(defaultCategories);
+      console.log(`✓ Categorias padrão criadas para o usuário ${userId}`);
+    }
+  } catch (error) {
+    console.error('Erro ao criar categorias padrão:', error);
+  }
+};
 
 exports.createCapsule = async (req, res) => {
   try {
     const { title, content, unlockDate, categoryId, isPrivate, color, reminder, tags } = req.body;
+
+    // Criar categorias padrão se não existirem
+    await createDefaultCategories(req.user.userId);
+
+    // BUSCAR DADOS DO USUÁRIO ATUAL
+    const currentUser = await User.findByPk(req.user.userId);
+    if (!currentUser) {
+      return res.status(404).json({ message: 'Usuário não encontrado' });
+    }
 
     if (categoryId) {
       const category = await Category.findOne({
         where: { id: categoryId, userId: req.user.userId }
       });
       if (!category) {
-        return res.status(400).json({ message: 'Invalid category' });
+        return res.status(400).json({ message: 'Categoria inválida' });
       }
     }
 
@@ -29,9 +87,14 @@ exports.createCapsule = async (req, res) => {
       unlockDate,
       categoryId: categoryId || null,
       isPrivate: isPrivate !== undefined ? isPrivate : true,
-      color: color || '#6366f1',
+      color: color || '#e2b714',
       reminder: reminder || 0,
-      creatorId: req.user.userId
+      creatorId: req.user.userId,
+      // SALVAR METADATA DO AUTOR NO MOMENTO DA CRIAÇÃO
+      metadata: {
+        author: currentUser.username,
+        authorAvatar: currentUser.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.id}`
+      }
     });
 
     if (tags && tags.length > 0) {
@@ -42,20 +105,42 @@ exports.createCapsule = async (req, res) => {
       await CapsuleTag.bulkCreate(capsuleTags);
     }
 
+    console.log(`✓ Cápsula criada: ${capsule.title} por ${currentUser.username}`);
+
     res.status(201).json({
-      message: 'Capsule created successfully',
+      message: 'Cápsula criada com sucesso',
       capsule
     });
   } catch (error) {
-    res.status(500).json({ message: 'Error creating capsule', error: error.message });
+    console.error('Erro ao criar cápsula:', error);
+    res.status(500).json({ message: 'Erro ao criar cápsula', error: error.message });
   }
 };
 
+// ====== FUNÇÃO ATUALIZADA PARA MOSTRAR CÁPSULAS PÚBLICAS ======
 exports.getCapsules = async (req, res) => {
   try {
-    const { categoryId, status, tagId } = req.query;
+    const { categoryId, status, tagId, scope } = req.query;
     
-    const where = { creatorId: req.user.userId };
+    // DESBLOQUEAR cápsulas automaticamente do usuário logado
+    await checkAndUnlockCapsules(req.user.userId);
+    
+    // Criar categorias padrão se não existirem
+    await createDefaultCategories(req.user.userId);
+    
+    // MUDANÇA PRINCIPAL: Ajustar o filtro baseado no scope
+    let where = {};
+    
+    if (scope === 'public') {
+      // Mostrar cápsulas públicas E desbloqueadas de TODOS os usuários (incluindo as suas)
+      where = {
+        isPrivate: false,
+        isUnlocked: true
+      };
+    } else {
+      // Padrão: mostrar TODAS as cápsulas do próprio usuário (públicas e privadas)
+      where = { creatorId: req.user.userId };
+    }
     
     if (categoryId) {
       where.categoryId = categoryId;
@@ -80,10 +165,10 @@ exports.getCapsules = async (req, res) => {
         required: false
       },
       {
-        model: require('../models/User'),
+        model: User,
         as: 'creator',
-        attributes: ['id', 'username', 'avatar'],
-        required: false
+        attributes: ['id', 'username', 'email', 'avatar'],
+        required: true
       }
     ];
 
@@ -92,7 +177,6 @@ exports.getCapsules = async (req, res) => {
       include[1].required = true;
     }
 
-    // Fetch and attach metadata used by the frontend
     const capsulesRaw = await Capsule.findAll({
       where,
       include,
@@ -101,25 +185,60 @@ exports.getCapsules = async (req, res) => {
 
     const capsules = capsulesRaw.map(c => {
       const obj = c.toJSON();
+      
+      // PRIORIZAR METADATA SALVO, DEPOIS DADOS DO CREATOR
+      let authorName = 'Usuário Desconhecido';
+      let authorAvatar = null;
+      let authorId = obj.creatorId;
+      
+      // 1. Verificar se tem metadata salvo
+      if (obj.metadata?.author) {
+        authorName = obj.metadata.author;
+        authorAvatar = obj.metadata.authorAvatar;
+      } 
+      // 2. Se não, usar dados do creator do JOIN
+      else if (obj.creator?.username) {
+        authorName = obj.creator.username;
+        authorAvatar = obj.creator.avatar;
+        authorId = obj.creator.id;
+      }
+      
+      // 3. Fallback para avatar padrão
+      if (!authorAvatar) {
+        authorAvatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${authorId}`;
+      }
+      
+      // Atualizar/criar metadata
       obj.metadata = {
-        author: obj.creator?.username || 'Você',
-        authorAvatar: obj.creator?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${obj.creator?.id || obj.creatorId}`
+        author: authorName,
+        authorAvatar: authorAvatar
       };
+      
+      console.log(`Cápsula ${obj.id}: autor=${authorName}, avatar=${authorAvatar}, creatorId=${authorId}`);
+      
       return obj;
     });
 
     res.json({ capsules });
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching capsules', error: error.message });
+    console.error('Erro ao buscar cápsulas:', error);
+    res.status(500).json({ message: 'Erro ao buscar cápsulas', error: error.message });
   }
 };
 
 exports.getCapsuleById = async (req, res) => {
   try {
+    // Desbloquear cápsulas antes de buscar
+    await checkAndUnlockCapsules(req.user.userId);
+    
     const capsule = await Capsule.findOne({
       where: {
         id: req.params.id,
-        creatorId: req.user.userId
+        // Permitir visualizar se for do usuário OU se for pública e desbloqueada
+        [Op.or]: [
+          { creatorId: req.user.userId },
+          { isPrivate: false, isUnlocked: true }
+        ]
       },
       include: [
         {
@@ -131,18 +250,27 @@ exports.getCapsuleById = async (req, res) => {
           model: Tag,
           as: 'tags',
           through: { attributes: [] }
+        },
+        {
+          model: User,
+          as: 'creator',
+          attributes: ['id', 'username', 'avatar']
         }
       ]
     });
 
     if (!capsule) {
-      return res.status(404).json({ message: 'Capsule not found' });
+      return res.status(404).json({ message: 'Cápsula não encontrada' });
     }
 
-    const now = new Date();
-    if (now >= capsule.unlockDate && !capsule.isUnlocked) {
-      capsule.isUnlocked = true;
-      await capsule.save();
+    // Verificar e desbloquear se necessário (apenas se for do próprio usuário)
+    if (capsule.creatorId === req.user.userId) {
+      const now = new Date();
+      if (now >= capsule.unlockDate && !capsule.isUnlocked) {
+        capsule.isUnlocked = true;
+        await capsule.save();
+        console.log(`✓ Cápsula ${capsule.id} desbloqueada ao visualizar`);
+      }
     }
 
     await capsule.update({
@@ -152,7 +280,8 @@ exports.getCapsuleById = async (req, res) => {
 
     res.json({ capsule });
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching capsule', error: error.message });
+    console.error('Erro ao buscar cápsula:', error);
+    res.status(500).json({ message: 'Erro ao buscar cápsula', error: error.message });
   }
 };
 
@@ -168,7 +297,7 @@ exports.updateCapsule = async (req, res) => {
     });
 
     if (!capsule) {
-      return res.status(404).json({ message: 'Capsule not found' });
+      return res.status(404).json({ message: 'Cápsula não encontrada' });
     }
 
     if (categoryId) {
@@ -176,7 +305,7 @@ exports.updateCapsule = async (req, res) => {
         where: { id: categoryId, userId: req.user.userId }
       });
       if (!category) {
-        return res.status(400).json({ message: 'Invalid category' });
+        return res.status(400).json({ message: 'Categoria inválida' });
       }
     }
 
@@ -202,9 +331,10 @@ exports.updateCapsule = async (req, res) => {
       }
     }
 
-    res.json({ message: 'Capsule updated successfully', capsule });
+    res.json({ message: 'Cápsula atualizada com sucesso', capsule });
   } catch (error) {
-    res.status(500).json({ message: 'Error updating capsule', error: error.message });
+    console.error('Erro ao atualizar cápsula:', error);
+    res.status(500).json({ message: 'Erro ao atualizar cápsula', error: error.message });
   }
 };
 
@@ -218,25 +348,24 @@ exports.toggleFavorite = async (req, res) => {
     });
 
     if (!capsule) {
-      return res.status(404).json({ message: 'Capsule not found' });
+      return res.status(404).json({ message: 'Cápsula não encontrada' });
     }
 
     await capsule.update({ isFavorite: !capsule.isFavorite });
 
-    res.json({ message: 'Favorite toggled', capsule });
+    res.json({ message: 'Favorito alternado', capsule });
   } catch (error) {
-    res.status(500).json({ message: 'Error toggling favorite', error: error.message });
+    console.error('Erro ao alternar favorito:', error);
+    res.status(500).json({ message: 'Erro ao alternar favorito', error: error.message });
   }
 };
 
 exports.deleteCapsule = async (req, res) => {
   try {
-    // Ensure capsule exists and belongs to user
     const capsule = await Capsule.findOne({ where: { id: req.params.id, creatorId: req.user.userId } });
-    if (!capsule) return res.status(404).json({ message: 'Capsule not found' });
+    if (!capsule) return res.status(404).json({ message: 'Cápsula não encontrada' });
 
     await sequelize.transaction(async (t) => {
-      // Remove many-to-many, comments, likes, favorites, views, notifications
       await CapsuleTag.destroy({ where: { capsuleId: req.params.id }, transaction: t });
       await Comment.destroy({ where: { capsuleId: req.params.id }, transaction: t });
       await Like.destroy({ where: { capsuleId: req.params.id }, transaction: t });
@@ -247,16 +376,20 @@ exports.deleteCapsule = async (req, res) => {
       await Capsule.destroy({ where: { id: req.params.id, creatorId: req.user.userId }, transaction: t });
     });
 
-    res.json({ message: 'Capsule deleted successfully' });
+    console.log(`✓ Cápsula ${req.params.id} excluída com sucesso`);
+    res.json({ message: 'Cápsula excluída com sucesso' });
   } catch (error) {
-    console.error('Error deleting capsule:', error);
-    res.status(500).json({ message: 'Error deleting capsule', error: error.message });
+    console.error('Erro ao excluir cápsula:', error);
+    res.status(500).json({ message: 'Erro ao excluir cápsula', error: error.message });
   }
 };
 
 exports.getStatistics = async (req, res) => {
   try {
     const userId = req.user.userId;
+    
+    await checkAndUnlockCapsules(userId);
+    await createDefaultCategories(userId);
     
     const totalCapsules = await Capsule.count({
       where: { creatorId: userId }
@@ -313,7 +446,8 @@ exports.getStatistics = async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching statistics', error: error.message });
+    console.error('Erro ao buscar estatísticas:', error);
+    res.status(500).json({ message: 'Erro ao buscar estatísticas', error: error.message });
   }
 };
 
@@ -348,6 +482,7 @@ exports.exportData = async (req, res) => {
 
     res.json(exportData);
   } catch (error) {
-    res.status(500).json({ message: 'Error exporting data', error: error.message });
+    console.error('Erro ao exportar dados:', error);
+    res.status(500).json({ message: 'Erro ao exportar dados', error: error.message });
   }
 };

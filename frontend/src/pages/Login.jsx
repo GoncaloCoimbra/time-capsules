@@ -818,14 +818,38 @@ function Login() {
           fill: #111827;
         }
 
-        /* Password toggle keeps fixed position and changes color on focus */
+        /* PASSWORD TOGGLE FIXED WITH !IMPORTANT */
         .password-toggle {
-          right: 16px;
+          position: absolute !important;
+          right: 16px !important;
+          top: 50% !important;
+          transform: translateY(-50%) !important;
+          background: none !important;
+          border: none !important;
+          color: #94a3b8 !important;
+          cursor: pointer;
+          padding: 8px !important;
+          border-radius: 6px !important;
+          transition: all 0.2s ease !important;
+          z-index: 3 !important;
+          width: 36px !important;
+          height: 36px !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          margin: 0 !important;
         }
-
+        
+        /* Hover effect - becomes golden */
+        .password-toggle:hover {
+          color: #e2b714 !important;
+          background: rgba(226, 183, 20, 0.1) !important;
+        }
+        
+        /* When input is focused - becomes black */
         .input-wrapper:focus-within .password-toggle {
-          color: #111827;
-          background: transparent;
+          color: #111827 !important;
+          background: transparent !important;
         }
 
         .chronicle-input::placeholder {
@@ -834,31 +858,6 @@ function Login() {
 
         .chronicle-input:not(:placeholder-shown)::placeholder {
           color: transparent;
-        }
-        
-        .password-toggle {
-          position: absolute;
-          right: 16px;
-          top: 50%;
-          transform: translateY(-50%);
-          background: none;
-          border: none;
-          color: #94a3b8;
-          cursor: pointer;
-          padding: 8px;
-          border-radius: 6px;
-          transition: all 0.2s ease;
-          z-index: 3;
-          width: 36px;
-          height: 36px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        
-        .password-toggle:hover {
-          color: #e2b714;
-          background: rgba(226, 183, 20, 0.1);
         }
         
         .eye-icon {
@@ -1178,9 +1177,9 @@ function Login() {
           }
           
           .password-toggle {
-            right: 14px;
-            width: 32px;
-            height: 32px;
+            right: 14px !important;
+            width: 32px !important;
+            height: 32px !important;
           }
           
           .input-icon {
@@ -1230,9 +1229,9 @@ function Login() {
           }
           
           .password-toggle {
-            right: 12px;
-            width: 30px;
-            height: 30px;
+            right: 12px !important;
+            width: 30px !important;
+            height: 30px !important;
           }
           
           .input-icon {

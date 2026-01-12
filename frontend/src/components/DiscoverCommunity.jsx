@@ -27,16 +27,20 @@ function DiscoverCommunity() {
         limit: 100
       });
       
-      // Agrupar cápsulas por usuário
+      // Agrupar cápsulas por usuário - CORRIGIDO para usar 'creator' ao invés de 'User'
       const userMap = {};
       (res.data.capsules || []).forEach(capsule => {
-        const userId = capsule.userId;
+        // CORREÇÃO: usar creatorId ao invés de userId
+        const userId = capsule.creatorId || capsule.creator?.id;
+        if (!userId) return;
+        
         if (!userMap[userId]) {
           userMap[userId] = {
             userId,
-            username: capsule.User?.username || 'Usuário Anônimo',
-            avatar: capsule.User?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`,
-            bio: capsule.User?.bio || 'Colecionador de cápsulas temporais',
+            // CORREÇÃO: usar creator ao invés de User
+            username: capsule.creator?.username || capsule.metadata?.author || 'Usuário Anônimo',
+            avatar: capsule.creator?.avatar || capsule.metadata?.authorAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`,
+            bio: capsule.creator?.bio || 'Colecionador de cápsulas temporais',
             capsules: []
           };
         }
@@ -44,6 +48,7 @@ function DiscoverCommunity() {
       });
 
       const explorersList = Object.values(userMap);
+      console.log('Exploradores carregados:', explorersList);
       setExplorers(explorersList);
       setLoading(false);
     } catch (error) {
@@ -73,7 +78,11 @@ function DiscoverCommunity() {
         return bViews - aViews;
       });
     } else {
-      filtered.sort((a, b) => new Date(b.capsules[0]?.createdAt) - new Date(a.capsules[0]?.createdAt));
+      filtered.sort((a, b) => {
+        const aDate = a.capsules[0]?.createdAt ? new Date(a.capsules[0].createdAt) : new Date(0);
+        const bDate = b.capsules[0]?.createdAt ? new Date(b.capsules[0].createdAt) : new Date(0);
+        return bDate - aDate;
+      });
     }
 
     setFilteredExplorers(filtered);
@@ -87,7 +96,7 @@ function DiscoverCommunity() {
         className="discover-header"
       >
         <div className="header-content">
-          <h2> Explore a Comunidade</h2>
+          <h2>🌍 Explore a Comunidade</h2>
           <p>Descubra cápsulas temporais de outros usuários e conecte-se com exploradores do tempo</p>
         </div>
 
@@ -116,6 +125,7 @@ function DiscoverCommunity() {
 
       {loading ? (
         <div className="loading-state">
+          <div className="loading-spinner"></div>
           <p>Carregando exploradores do tempo...</p>
         </div>
       ) : filteredExplorers.length > 0 ? (
@@ -142,6 +152,10 @@ function DiscoverCommunity() {
                     src={explorer.avatar}
                     alt={explorer.username}
                     className="explorer-avatar"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${explorer.userId}`;
+                    }}
                   />
                   <div className="activity-indicator" />
                 </div>
@@ -180,7 +194,7 @@ function DiscoverCommunity() {
                           whileHover={{ scale: 1.1 }}
                         >
                           <span className="badge-status">
-                            {capsule.isUnlocked ? '' : ''}
+                            {capsule.isUnlocked ? '🔓' : '🔒'}
                           </span>
                         </motion.div>
                       ))}
@@ -207,7 +221,7 @@ function DiscoverCommunity() {
         </motion.div>
       ) : (
         <div className="empty-state">
-          <p> Nenhum explorador encontrado</p>
+          <p>🔍 Nenhum explorador encontrado</p>
           <p className="empty-subtext">Tente ajustar sua busca</p>
         </div>
       )}

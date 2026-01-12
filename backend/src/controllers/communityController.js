@@ -7,14 +7,20 @@ const User = require('../models/User');
 const CapsuleView = require('../models/CapsuleView');
 const CapsuleTag = require('../models/CapsuleTag');
 const { Op } = require('sequelize');
+const sequelize = require('../config/database');
 
 exports.explorePublic = async (req, res) => {
   try {
-    const { search, sort, page = 1 } = req.query;
+    const { search, sort, page = 1, creator } = req.query;
     const limit = 12;
     const offset = (page - 1) * limit;
 
     const where = { isPrivate: false, isUnlocked: true };
+    
+    // IMPORTANTE: Se estiver filtrando por criador, usa o creatorId
+    if (creator) {
+      where.creatorId = creator;
+    }
     
     if (search) {
       where[Op.or] = [
@@ -30,21 +36,42 @@ exports.explorePublic = async (req, res) => {
     const capsules = await Capsule.findAndCountAll({
       where,
       include: [
-        { model: Category, as: 'category', required: false },
-        { model: Tag, as: 'tags', through: { attributes: [] }, required: false }
+        { 
+          model: Category, 
+          as: 'category', 
+          required: false 
+        },
+        { 
+          model: Tag, 
+          as: 'tags', 
+          through: { attributes: [] }, 
+          required: false 
+        },
+        {
+          // ADICIONADO: Include do User (criador)
+          model: User,
+          as: 'creator',
+          attributes: ['id', 'username', 'email', 'avatar', 'bio', 'createdAt'],
+          required: false
+        }
       ],
       order,
       limit,
       offset
     });
 
-    // Get like counts
+    // Get like counts and rename creator to User
     const capsulesWithStats = await Promise.all(
       capsules.rows.map(async (capsule) => {
         const likeCount = await Like.count({ where: { capsuleId: capsule.id } });
         const commentCount = await Comment.count({ where: { capsuleId: capsule.id } });
+        
+        const capsuleData = capsule.toJSON();
+        
+        // IMPORTANTE: Renomear 'creator' para 'User' para compatibilidade com frontend
         return {
-          ...capsule.toJSON(),
+          ...capsuleData,
+          User: capsuleData.creator, // Adiciona como 'User'
           likeCount,
           commentCount
         };
@@ -58,6 +85,7 @@ exports.explorePublic = async (req, res) => {
       pages: Math.ceil(capsules.count / limit)
     });
   } catch (error) {
+    console.error('Error in explorePublic:', error);
     res.status(500).json({ message: 'Error exploring capsules', error: error.message });
   }
 };
@@ -135,7 +163,7 @@ exports.getLeaderboard = async (req, res) => {
     const leaderboardWithUsers = await Promise.all(
       leaderboard.map(async (entry) => {
         const user = await User.findByPk(entry.creatorId, {
-          attributes: ['id', 'username', 'email']
+          attributes: ['id', 'username', 'email', 'avatar', 'bio']
         });
         return {
           ...entry,
