@@ -92,7 +92,7 @@ exports.createCapsule = async (req, res) => {
       codeSnippet: codeSnippet || null,
       language: language || null,
       creatorId: req.user.userId,
-      // SALVAR METADATA DO AUTOR NO MOMENTO DA CRIAÇÃO
+      // Guardar METADATA DO AUTOR NO MOMENTO DA CRIAÇÃO
       metadata: {
         author: currentUser.username,
         authorAvatar: currentUser.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.id}`

@@ -295,7 +295,7 @@ function Dashboard() {
       resetForm();
     } catch (error) {
       console.error('Error saving capsule:', error);
-      alert('Erro ao salvar cápsula: ' + (error.response?.data?.message || error.message));
+      alert('Erro ao Guardar cápsula: ' + (error.response?.data?.message || error.message));
     } finally {
       setLoading(false);
     }
@@ -486,7 +486,7 @@ function Dashboard() {
       // Inform user
       setNotifications(prev => [{ id, type: 'reminder-scheduled', createdAt: new Date().toISOString(), meta: { text: obj.text, date: obj.date }, local: true }, ...prev]);
     } catch (err) {
-      console.error('Erro ao salvar lembrete local', err);
+      console.error('Erro ao Guardar lembrete local', err);
     }
   };
 
@@ -643,9 +643,9 @@ function Dashboard() {
               <button className="notif-btn" onClick={() => setActiveTab('notifications')}>
                 🔔 {notifications.filter(n => !n.read).length}
               </button>
-              <button className="btn-secondary" style={{ marginLeft: 8 }} onClick={() => setShowScheduleModal(true)}>
-                ⏰ Agendar lembrete
-              </button>
+            <button className="btn-schedule" onClick={() => setShowScheduleModal(true)}>
+           <span className="btn-schedule-icon">⏰</span> Agendar lembrete
+           </button>
             </div>
             <div className="user-avatar" onClick={goToUserProfile} style={{ cursor: 'pointer' }} title="Clique para ver perfil">
               {user?.username?.substring(0, 2).toUpperCase() || 'US'}
@@ -756,7 +756,7 @@ function Dashboard() {
                   </label>
                 </div>
                 <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
-                  <button className="chronicle-button" onClick={handleScheduleSave}>Salvar</button>
+                  <button className="chronicle-button" onClick={handleScheduleSave}>Guardar</button>
                   <button className="btn-secondary" onClick={() => setShowScheduleModal(false)}>Cancelar</button>
                 </div>
               </motion.div>
