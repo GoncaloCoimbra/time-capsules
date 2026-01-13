@@ -20,10 +20,18 @@ function DiscoverCommunity() {
 
   const loadTrending = async () => {
     try {
-      const res = await communityAPI.getLeaderboard({ type: 'capsules', limit: 20 });
-      // Expect res.data.leaderboard or res.data.capsules
-      const capsules = res.data?.leaderboard || res.data?.capsules || [];
+      // Buscar as cápsulas mais vistas (top trending) via explorePublic
+      const res = await communityAPI.explorePublic({ sort: 'trending', limit: 20 });
+      const capsules = res.data?.capsules || [];
+      console.log('Trending API response:', res.data);
       setTrendingCapsules(capsules);
+
+      // If nothing found, fetch recent public capsules as a fallback
+      if (!capsules || capsules.length === 0) {
+        console.log('Nenhuma cápsula trending pública/desbloqueada encontrada, buscando últimas públicas como fallback');
+        const fallback = await communityAPI.explorePublic({ sort: 'recent', limit: 10 });
+        setTrendingCapsules(fallback.data?.capsules || []);
+      }
     } catch (err) {
       console.error('Erro ao carregar trending:', err);
     }
@@ -135,7 +143,7 @@ function DiscoverCommunity() {
         <div className="discover-controls">
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <button className="chronicle-button" onClick={loadCommunity}>🔄 Atualizar</button>
-            <button className="btn-secondary" onClick={loadTrending}>🔥 Trending</button>
+            
           </div>
           <div className="search-box">
             <input
@@ -166,23 +174,7 @@ function DiscoverCommunity() {
         </div>
       ) : filteredExplorers.length > 0 ? (
         <>
-          {trendingCapsules.length > 0 && (
-            <div className="trending-section">
-              <h3>🔥 Cápsulas em Tendência</h3>
-              <div className="trending-list">
-                {trendingCapsules.map(c => (
-                  <div key={c.id} className="trending-card">
-                    <div className="trending-title">{c.title}</div>
-                    <div className="trending-meta">{c.creatorName || c.metadata?.author} · {c.viewCount || 0} views</div>
-                    <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
-                      <button className="chronicle-button" onClick={() => handleVote(c.id)}>▲ Votar</button>
-                      <span style={{ fontSize: 14, color: '#666' }}>{c.votes || 0} votos</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+    
 
         <motion.div
           initial={{ opacity: 0 }}

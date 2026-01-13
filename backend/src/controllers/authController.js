@@ -96,3 +96,17 @@ exports.updateProfile = async (req, res) => {
     res.status(500).json({ message: 'Error updating profile', error: error.message });
   }
 };
+
+// Return current user based on JWT token
+exports.me = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const user = await User.findByPk(userId, {
+      attributes: ['id', 'username', 'email', 'avatar', 'bio']
+    });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json({ user });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching user', error: error.message });
+  }
+};

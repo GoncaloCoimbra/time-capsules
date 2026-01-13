@@ -7,6 +7,8 @@ import Dashboard from './pages/Dashboard';
 import UserProfile from './pages/UserProfile';
 import CreateCapsule from './pages/CreateCapsule';
 import RevealCapsule from './pages/RevealCapsule';
+import AuthCallback from './pages/AuthCallback';
+
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
@@ -51,6 +53,7 @@ function App() {
             path='/profile/:userId' 
             element={<UserProfile />} 
           />
+          <Route path='/auth/callback' element={<AuthCallback />} />
           <Route path='/' element={<Navigate to='/dashboard' />} />
         </Routes>
       </Router>

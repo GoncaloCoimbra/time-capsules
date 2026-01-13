@@ -10,10 +10,25 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const token = localStorage.getItem('token');
     const savedUser = localStorage.getItem('user');
-    if (token && savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    setLoading(false);
+    (async () => {
+      if (token && savedUser) {
+        setUser(JSON.parse(savedUser));
+      } else if (token && !savedUser) {
+        // If we have a token but no saved user, try to fetch the current user
+        try {
+          const res = await api.get('/auth/me');
+          const u = res.data?.user;
+          if (u) {
+            localStorage.setItem('user', JSON.stringify(u));
+            setUser(u);
+          }
+        } catch (err) {
+          console.error('Failed to fetch user with existing token', err);
+          localStorage.removeItem('token');
+        }
+      }
+      setLoading(false);
+    })();
   }, []);
 
   const register = async (username, email, password) => {
@@ -32,6 +47,18 @@ export const AuthProvider = ({ children }) => {
     return response.data;
   };
 
+  // Use this for OAuth callback token handling
+  const oauthLogin = async (token) => {
+    localStorage.setItem('token', token);
+    // Attempt to fetch /auth/me
+    const res = await api.get('/auth/me');
+    const u = res.data?.user;
+    if (!u) throw new Error('Failed to fetch user after oauth');
+    localStorage.setItem('user', JSON.stringify(u));
+    setUser(u);
+    return u;
+  };
+
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -39,7 +66,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, register, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, register, login, logout, oauthLogin }}>
       {children}
     </AuthContext.Provider>
   );

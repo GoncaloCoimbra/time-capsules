@@ -33,6 +33,12 @@ function Dashboard() {
   const [reminderDateLocal, setReminderDateLocal] = useState('');
   const [notifyCommunity, setNotifyCommunity] = useState(false);
   const [trendingTech, setTrendingTech] = useState([]);
+  const [trendingTechs, setTrendingTechs] = useState([]);
+  const [leaderboardData, setLeaderboardData] = useState([]);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(false);
+  // Trending capsules (tab)
+  const [trendingCapsules, setTrendingCapsules] = useState([]);
+  const [trendingLoading, setTrendingLoading] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   
   // Form states
@@ -63,6 +69,11 @@ function Dashboard() {
   const [selectedCapsule, setSelectedCapsule] = useState(null);
   const [commentText, setCommentText] = useState('');
   const [timeTravelDate, setTimeTravelDate] = useState('');
+
+  // Animação local de desbloqueio (simples): lista de IDs que acabaram de desbloquear
+  const [recentlyUnlocked, setRecentlyUnlocked] = useState([]);
+  const seenUnlockedRef = useRef(new Set());
+  const firstLoadRef = useRef(true);
   const [timeTravelResults, setTimeTravelResults] = useState([]);
   const [showTimeTravel, setShowTimeTravel] = useState(false);
   const [leaderboard, setLeaderboard] = useState([]);
@@ -141,11 +152,126 @@ function Dashboard() {
     };
   }, []);
 
+  // Detectar cápsulas que acabaram de desbloquear e animar localmente
+  useEffect(() => {
+    // Na primeira carga, marcar já vistos como 'visto' sem animar
+    if (firstLoadRef.current) {
+      capsules.forEach(c => {
+        const id = c.id;
+        const unlocked = c.isUnlocked || new Date(c.unlockDate) <= currentTime;
+        if (unlocked) seenUnlockedRef.current.add(id);
+      });
+      firstLoadRef.current = false;
+      return;
+    }
+
+    // Detectar novos desbloqueios enquanto o usuário permanece na página
+    capsules.forEach(c => {
+      const id = c.id;
+      const unlocked = c.isUnlocked || new Date(c.unlockDate) <= currentTime;
+      if (unlocked && !seenUnlockedRef.current.has(id)) {
+        // novo desbloqueio - animar
+        seenUnlockedRef.current.add(id);
+        setRecentlyUnlocked(prev => [...prev, id]);
+        // remover animação após 3s
+        setTimeout(() => setRecentlyUnlocked(prev => prev.filter(x => x !== id)), 3000);
+      }
+    });
+  }, [capsules, currentTime]);
+
   // Load data from API
   useEffect(() => {
     loadAllData();
     loadLocalReminders();
   }, [capsuleScope]);
+
+  // Helpers to compute trends and leaderboard locally from capsule list
+  const computeTrendingTagsFromCapsules = (capsules) => {
+    const counts = {};
+    capsules.forEach(c => {
+      (c.tags || []).forEach(t => {
+        const key = t.name || t.id || t;
+        counts[key] = (counts[key] || 0) + 1;
+      });
+    });
+    const arr = Object.keys(counts).map(k => ({ name: k, mentions: counts[k] }));
+    arr.sort((a,b) => b.mentions - a.mentions);
+    return arr.slice(0, 10);
+  };
+
+  const computeLeaderboardFromCapsules = (capsules) => {
+    const map = {};
+    capsules.forEach(c => {
+      const id = c.creatorId || c.creator?.id || c.User?.id;
+      if (!id) return;
+      if (!map[id]) map[id] = { creatorId: id, user: c.creator || c.User || null, totalCapsules: 0 };
+      map[id].totalCapsules += 1;
+    });
+    const arr = Object.values(map).sort((a,b) => b.totalCapsules - a.totalCapsules).slice(0, 10);
+    return arr;
+  };
+
+  // Load trending when the Trending tab is active
+  const loadTrending = async () => {
+    try {
+      setTrendingLoading(true);
+      setLeaderboardLoading(true);
+
+      // Primary source: server trending public capsules
+      const res = await communityAPI.explorePublic({ sort: 'trending', limit: 50 });
+      let capsules = res.data?.capsules || [];
+      setTrendingCapsules(capsules);
+
+      if (!capsules || capsules.length === 0) {
+        // fallback to recent public capsules
+        const fallback = await communityAPI.explorePublic({ sort: 'recent', limit: 50 });
+        capsules = fallback.data?.capsules || [];
+        setTrendingCapsules(capsules);
+      }
+
+      // Try server-side trending techs; if empty compute locally from capsules
+      try {
+        const techRes = await communityAPI.getTrendingTechs();
+        const techs = techRes.data?.trending || [];
+        if (!techs || techs.length === 0) {
+          const computed = computeTrendingTagsFromCapsules(capsules);
+          console.log('Fallback: computed trending techs from fetched capsules', computed);
+          setTrendingTechs(computed);
+        } else {
+          setTrendingTechs(techs);
+        }
+      } catch (err) {
+        console.error('Erro ao carregar tecnologias em alta:', err);
+        setTrendingTechs(computeTrendingTagsFromCapsules(capsules));
+      }
+
+      // Try server-side leaderboard; if empty compute locally from capsules
+      try {
+        const lbRes = await communityAPI.getLeaderboard({ type: 'capsules' });
+        const lb = lbRes.data?.leaderboard || [];
+        if (!lb || lb.length === 0) {
+          const computedLb = computeLeaderboardFromCapsules(capsules);
+          console.log('Fallback: computed leaderboard from fetched capsules', computedLb);
+          setLeaderboardData(computedLb);
+        } else {
+          setLeaderboardData(lb);
+        }
+      } catch (err) {
+        console.error('Erro ao carregar leaderboard:', err);
+        setLeaderboardData(computeLeaderboardFromCapsules(capsules));
+      }
+
+    } catch (err) {
+      console.error('Erro ao carregar trending (Dashboard):', err);
+    } finally {
+      setTrendingLoading(false);
+      setLeaderboardLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'trending') loadTrending();
+  }, [activeTab]);
 
   // Load local reminders from localStorage and set timers
   const loadLocalReminders = () => {
@@ -242,13 +368,14 @@ function Dashboard() {
 
   useEffect(() => {
     filterAndSortCapsules();
-  }, [capsules, filter, searchTerm, sortBy, showFavoritesOnly]);
+  }, [capsules, filter, searchTerm, sortBy, showFavoritesOnly, currentTime]);
 
   const filterAndSortCapsules = () => {
     let filtered = [...capsules];
+    const isLocallyUnlocked = (c) => c.isUnlocked || new Date(c.unlockDate) <= currentTime;
     if (showFavoritesOnly) filtered = filtered.filter(c => c.isFavorite);
-    if (filter === 'locked') filtered = filtered.filter(c => !c.isUnlocked);
-    else if (filter === 'unlocked') filtered = filtered.filter(c => c.isUnlocked);
+    if (filter === 'locked') filtered = filtered.filter(c => !isLocallyUnlocked(c));
+    else if (filter === 'unlocked') filtered = filtered.filter(c => isLocallyUnlocked(c));
     
     if (searchTerm) {
       filtered = filtered.filter(c =>
@@ -333,7 +460,7 @@ function Dashboard() {
     setEditingId(capsule.id);
     setTitle(capsule.title);
     setContent(capsule.content);
-    setUnlockDate(new Date(capsule.unlockDate).toISOString().slice(0, 16));
+    setUnlockDate(toLocalDatetimeInput(capsule.unlockDate));
     setCategoryId(capsule.category?.id || '');
     setSelectedTags(capsule.tags ? capsule.tags.map(t => t.id) : []);
     setIsPrivate(capsule.isPrivate);
@@ -506,6 +633,13 @@ function Dashboard() {
     });
   };
 
+  // Formata uma Date/valor para o formato aceito por <input type="datetime-local"> no fuso local
+  const toLocalDatetimeInput = (value) => {
+    const d = new Date(value);
+    const pad = (n) => n.toString().padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
   const formatTimeAgo = (date) => {
     const seconds = Math.floor((new Date() - new Date(date)) / 1000);
     if (seconds < 60) return 'agora mesmo';
@@ -644,8 +778,9 @@ function Dashboard() {
                 🔔 {notifications.filter(n => !n.read).length}
               </button>
             <button className="btn-schedule" onClick={() => setShowScheduleModal(true)}>
-           <span className="btn-schedule-icon">⏰</span> Agendar lembrete
-           </button>
+           <span className="btn-schedule-icon">⏰</span>
+ Agendar lembrete
+</button>
             </div>
             <div className="user-avatar" onClick={goToUserProfile} style={{ cursor: 'pointer' }} title="Clique para ver perfil">
               {user?.username?.substring(0, 2).toUpperCase() || 'US'}
@@ -995,11 +1130,12 @@ function Dashboard() {
                 )}
                 {filteredCapsules.map((capsule) => {
                   const isMyOwnCapsule = capsule.creatorId === user?.id;
+                  const localUnlocked = capsule.isUnlocked || new Date(capsule.unlockDate) <= currentTime;
                   
                   return (
                     <div 
                       key={capsule.id} 
-                      className="capsule-card"
+                      className={`capsule-card ${recentlyUnlocked.includes(capsule.id) ? 'unlocked-anim' : ''}`}
                       style={{ borderLeftColor: capsule.color }}
                       onClick={() => setSelectedCapsule(capsule)}
                     >
@@ -1043,8 +1179,8 @@ function Dashboard() {
                             {tag.name}
                           </span>
                         ))}
-                        <span className={`tag ${capsule.isUnlocked ? 'unlocked' : 'locked'}`}>
-                          {capsule.isUnlocked ? '🔓 Desbloqueada' : '🔒 Bloqueada'}
+                        <span className={`tag ${localUnlocked ? 'unlocked' : 'locked'}`}>
+                          {localUnlocked ? '🔓 Desbloqueada' : '🔒 Bloqueada'}
                         </span>
                         {!capsule.isPrivate && (
                           <span className="tag" style={{ background: '#1f7a8c' }}>
@@ -1068,7 +1204,7 @@ function Dashboard() {
                         </div>
                       </div>
                       
-                      {capsule.isUnlocked && (
+                      {localUnlocked && (
                         <div className="capsule-preview">
                           <p>{capsule.content.substring(0, 100)}...</p>
                         </div>
@@ -1125,14 +1261,14 @@ function Dashboard() {
                 <div className="stat-card">
                   <div className="stat-icon">🔒</div>
                   <div className="stat-content">
-                    <h3>{capsules.filter(c => !c.isUnlocked).length}</h3>
+                    <h3>{capsules.filter(c => !(c.isUnlocked || new Date(c.unlockDate) <= currentTime)).length}</h3>
                     <p>Bloqueadas</p>
                   </div>
                 </div>
                 <div className="stat-card">
                   <div className="stat-icon">🔓</div>
                   <div className="stat-content">
-                    <h3>{capsules.filter(c => c.isUnlocked).length}</h3>
+                    <h3>{capsules.filter(c => (c.isUnlocked || new Date(c.unlockDate) <= currentTime)).length}</h3>
                     <p>Desbloqueadas</p>
                   </div>
                 </div>
@@ -1222,7 +1358,7 @@ function Dashboard() {
                       value={timeTravelDate}
                       onChange={(e) => setTimeTravelDate(e.target.value)}
                       className="chronicle-input"
-                      min={new Date().toISOString().slice(0, 16)}
+                      min={toLocalDatetimeInput(new Date())}
                     />
                   </div>
                   
@@ -1570,6 +1706,80 @@ function Dashboard() {
             />
           )}
 
+          {/* Trending */}
+          {activeTab === 'trending' && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="chronicle-card main-card">
+              <div className="card-header">
+                <h2>🔥 Em Tendência</h2>
+                <div className="card-actions">
+                  <button onClick={() => loadTrending()} className="btn-secondary">🔄 Atualizar</button>
+                </div>
+              </div>
+
+              <div style={{ padding: 12 }}>
+                {trendingLoading ? (
+                  <div style={{ color: '#94a3b8' }}>Carregando trending...</div>
+                ) : trendingCapsules.length === 0 ? (
+                  <div style={{ color: '#94a3b8' }}>Nenhuma cápsula trending pública/desbloqueada encontrada no momento.</div>
+                ) : (
+                  <div>
+                    <div className="trending-list" style={{ marginBottom: 16 }}>
+                      {trendingCapsules.map(c => (
+                        <motion.div key={c.id} className="trending-card" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
+                          <div className="trending-title">{c.title}</div>
+                          <div className="trending-meta">{c.creator?.username || c.User?.username || c.metadata?.author || '—'} · {c.viewCount || 0} views</div>
+                          <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
+                            <button className="chronicle-button" onClick={() => { communityAPI.vote(c.id); /* optimistic UI not necessary here */ }}>▲ Votar</button>
+                            <span style={{ fontSize: 14, color: '#666' }}>{c.votes || 0} votos</span>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+
+                    <div className="trending-techs" style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+                      <div style={{ flex: 1 }}>
+                        <h4 style={{ margin: '0 0 8px 0' }}>🔥 Tecnologias em Alta</h4>
+                        {trendingTechs.length === 0 ? (
+                          <div style={{ color: '#94a3b8' }}>Carregando tendências...</div>
+                        ) : (
+                          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                            {trendingTechs.map(t => (
+                              <span key={t.id} className="tag" style={{ background: 'rgba(255,255,255,0.03)' }}>{t.name} ({t.mentions})</span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div style={{ width: 320 }}>
+                        <h4 style={{ margin: '0 0 8px 0' }}>🏆 Top da Semana</h4>
+                        {leaderboardLoading ? (
+                          <div style={{ color: '#94a3b8' }}>Carregando leaderboard...</div>
+                        ) : leaderboardData.length === 0 ? (
+                          <div style={{ color: '#94a3b8' }}>Nenhum dado disponível no momento.</div>
+                        ) : (
+                          <div style={{ display: 'grid', gap: 8 }}>
+                            {leaderboardData.map((entry, idx) => (
+                              <div key={entry.creatorId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                  <div style={{ width: 36, height: 36, borderRadius: 8, background: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{idx + 1}</div>
+                                  <div>
+                                    <div style={{ fontWeight: 700 }}>{entry.user?.username || entry.user?.email || '—'}</div>
+                                    <div style={{ fontSize: 12, color: '#94a3b8' }}>{entry.totalCapsules ?? entry.totalLikes ?? 0} cápsulas</div>
+                                  </div>
+                                </div>
+                                <div style={{ fontWeight: 700 }}>{entry.totalCapsules ?? entry.totalLikes ?? 0}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+
           {/* Achievements */}
           {activeTab === 'achievements' && (
             <Achievements 
@@ -1710,8 +1920,8 @@ function Dashboard() {
                   </div>
                   <div className="stat">
                     <span>Status:</span>
-                    <strong className={selectedCapsule.isUnlocked ? 'unlocked' : 'locked'}>
-                      {selectedCapsule.isUnlocked ? '🔓 Desbloqueada' : '🔒 Bloqueada'}
+                    <strong className={(selectedCapsule.isUnlocked || new Date(selectedCapsule.unlockDate) <= currentTime) ? 'unlocked' : 'locked'}>
+                      {(selectedCapsule.isUnlocked || new Date(selectedCapsule.unlockDate) <= currentTime) ? '🔓 Desbloqueada' : '🔒 Bloqueada'}
                     </strong>
                   </div>
                 </div>

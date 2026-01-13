@@ -380,6 +380,28 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) file for 
 
 ## 📧 Support
 
+OAuth (GitHub / Google)
+
+If you wish to enable social login via GitHub or Google, follow these steps:
+
+1. Create OAuth apps in GitHub and Google and configure callback URLs:
+   - GitHub callback: http://localhost:5000/api/auth/github/callback
+   - Google callback: http://localhost:5000/api/auth/google/callback
+
+2. Add the following environment variables to your backend `.env` file (see `backend/.env.example`):
+   - GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, GITHUB_CALLBACK_URL
+   - GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_CALLBACK_URL
+   - FRONTEND_URL (e.g., http://localhost:5173)
+   - JWT_SECRET
+
+3. Install the required packages in the backend:
+   - npm install passport passport-github2 passport-google-oauth20 --save
+
+4. Restart the backend server (`npm run dev`).
+
+5. Frontend: social buttons will redirect to the backend endpoints which start the OAuth flow. After a successful provider sign-in the backend redirects back to:
+   `${FRONTEND_URL}/auth/callback?token=...` — the frontend consumes `?token` to complete login.
+
 For support, open an issue on GitHub or contact the team.
 
 ## 📊 Project Status

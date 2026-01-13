@@ -44,8 +44,10 @@ function TimelineView({ capsules = [], onCapsuleClick, newCapsuleId = null }) {
   }, [capsules]);
 
   const getUnlockStatus = (capsule) => {
-    // Usar o campo isUnlocked do servidor como fonte de verdade
-    return capsule.isUnlocked ? 'unlocked' : 'locked';
+    // Considerar desbloqueio local baseado na data também para atualizar sem refresh
+    const now = new Date();
+    const unlock = new Date(capsule.unlockDate);
+    return (capsule.isUnlocked || now >= unlock) ? 'unlocked' : 'locked';
   };
 
   const getDaysUntilUnlock = (unlockDate) => {

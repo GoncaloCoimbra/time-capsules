@@ -1,24 +1,33 @@
-﻿const express = require('express');
+﻿// Carregar variáveis de ambiente PRIMEIRO (antes de tudo!)
+const dotenv = require('dotenv');
+dotenv.config();
+
+const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
-const dotenv = require('dotenv');
 const connectDB = require('./config/database');
 const { apiLimiter, authLimiter } = require('./middleware/rateLimiter');
 
-dotenv.config();
-
 const app = express();
 
+// Inicializar Passport (DEPOIS do dotenv.config())
+const passport = require('passport');
+require('./passport');
+
+// Middlewares
 app.use(helmet());
 app.use(compression());
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(passport.initialize());
 
+// Rate limiters
 app.use('/api/', apiLimiter);
 app.use('/api/auth/', authLimiter);
 
+// Rotas
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/capsules', require('./routes/capsuleRoutes'));
 app.use('/api/categories', require('./routes/categoryRoutes'));
@@ -27,7 +36,11 @@ app.use('/api/templates', require('./routes/templateRoutes'));
 app.use('/api/comments', require('./routes/commentRoutes'));
 app.use('/api/likes', require('./routes/likeRoutes'));
 app.use('/api/community', require('./routes/communityRoutes'));
+app.use('/api/favorites', require('./routes/favoriteRoutes'));
+app.use('/api/follow', require('./routes/followRoutes'));
+app.use('/api/notifications', require('./routes/notificationRoutes'));
 
+// Health check
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
@@ -38,6 +51,7 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({
@@ -48,6 +62,7 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
+// Models
 const Capsule = require('./models/Capsule');
 const Category = require('./models/Category');
 const Tag = require('./models/Tag');
@@ -62,7 +77,9 @@ const User = require('./models/User');
 const Follow = require('./models/Follow');
 const Notification = require('./models/Notification');
 const Vote = require('./models/Vote');
+const ScheduledNotification = require('./models/ScheduledNotification');
 
+// Model associations
 Capsule.belongsTo(Category, { foreignKey: 'categoryId', as: 'category' });
 Category.hasMany(Capsule, { foreignKey: 'categoryId', as: 'capsules' });
 
@@ -96,10 +113,6 @@ Vote.belongsTo(Capsule, { foreignKey: 'capsuleId' });
 User.hasMany(Vote, { foreignKey: 'userId', as: 'votesByUser' });
 Vote.belongsTo(User, { foreignKey: 'userId' });
 
-app.use('/api/favorites', require('./routes/favoriteRoutes'));
-app.use('/api/follow', require('./routes/followRoutes'));
-app.use('/api/notifications', require('./routes/notificationRoutes'));
-
 // Follow associations
 User.hasMany(Follow, { foreignKey: 'followerId', as: 'following' });
 User.hasMany(Follow, { foreignKey: 'followingId', as: 'followers' });
@@ -108,24 +121,50 @@ User.hasMany(Follow, { foreignKey: 'followingId', as: 'followers' });
 User.hasMany(Notification, { foreignKey: 'userId', as: 'notifications' });
 Notification.belongsTo(User, { foreignKey: 'userId' });
 
-const ScheduledNotification = require('./models/ScheduledNotification');
 User.hasMany(ScheduledNotification, { foreignKey: 'userId', as: 'scheduledNotifications' });
 ScheduledNotification.belongsTo(User, { foreignKey: 'userId' });
 
+// Start server
 connectDB().then(() => {
   app.listen(PORT, () => {
-    console.log(' Server running on port ' + PORT);
-    console.log(' Version 3.0.0 - Ultimate Edition');
+    console.log('✓ Server running on port ' + PORT);
+    console.log('✓ Version 4.0.0 - Ultimate Edition');
+    console.log('✓ Environment:', process.env.NODE_ENV || 'development');
+    
+    // Log OAuth status
+    if (process.env.GITHUB_CLIENT_ID) {
+      console.log('✓ GitHub OAuth: ENABLED');
+    } else {
+      console.log('⚠ GitHub OAuth: DISABLED (missing credentials)');
+    }
+    
+    if (process.env.GOOGLE_CLIENT_ID) {
+      console.log('✓ Google OAuth: ENABLED');
+    } else {
+      console.log('⚠ Google OAuth: DISABLED (missing credentials)');
+    }
   });
 
   // Background scheduler: process pending scheduled notifications every minute
   const { Op } = require('sequelize');
   const processScheduledNotifications = async () => {
     try {
-      const due = await ScheduledNotification.findAll({ where: { sent: false, remindAt: { [Op.lte]: new Date() } } });
+      const due = await ScheduledNotification.findAll({ 
+        where: { 
+          sent: false, 
+          remindAt: { [Op.lte]: new Date() } 
+        } 
+      });
+      
       for (const s of due) {
         try {
-          await Notification.create({ userId: s.userId, actorId: s.actorId, type: 'reminder', capsuleId: s.capsuleId, meta: s.meta });
+          await Notification.create({ 
+            userId: s.userId, 
+            actorId: s.actorId, 
+            type: 'reminder', 
+            capsuleId: s.capsuleId, 
+            meta: s.meta 
+          });
 
           if (process.env.SMTP_HOST && s.meta && s.meta.email) {
             const nodemailer = require('nodemailer');
@@ -139,7 +178,12 @@ connectDB().then(() => {
               }
             });
 
-            await transporter.sendMail({ from: process.env.SMTP_FROM || process.env.SMTP_USER, to: s.meta.email, subject: s.meta.subject || 'Lembrete CodeTime', html: s.meta.html || `<p>Lembrete da sua cápsula</p>` });
+            await transporter.sendMail({ 
+              from: process.env.SMTP_FROM || process.env.SMTP_USER, 
+              to: s.meta.email, 
+              subject: s.meta.subject || 'Lembrete CodeTime', 
+              html: s.meta.html || `<p>Lembrete da sua cápsula</p>` 
+            });
           }
 
           s.sent = true;
