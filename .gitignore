@@ -1,39 +1,142 @@
-﻿# Dependencies
+﻿
+# Environment Variables
+
+.env
+.env.local
+.env.development
+.env.development.local
+.env.test
+.env.test.local
+.env.production
+.env.production.local
+
+
+# Dependencies
+
 node_modules/
 .pnp
 .pnp.js
 
+
 # Testing
+
 coverage/
+*.test.js.snap
+.nyc_output/
+
 
 # Production
+
 build/
 dist/
+out/
 
-# Misc
-.DS_Store
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+
+# Database
+
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+database.sqlite
+/database/
+
 
 # Logs
+
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
+*.log
+logs/
+pids/
+*.pid
+*.seed
+*.pid.lock
 
-# IDE
+
+# IDE / Editor
+
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
+*.sublime-project
+*.sublime-workspace
+.project
+.classpath
+.settings/
 
-# Database
-*.db
-*.sqlite
-*.sqlite3
 
-# OS
+# OS Files
+
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+Desktop.ini
+
+
+# Security & Certificates
+
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pfx
+*.pub
+
+
+# Temporary Files
+
+*.tmp
+*.temp
+tmp/
+temp/
+.cache/
+
+
+# Upload Directories
+
+uploads/
+public/uploads/
+static/uploads/
+
+
+# Optional npm cache
+
+.npm
+.eslintcache
+
+
+# Optional REPL history
+
+.node_repl_history
+
+
+# Yarn
+
+.yarn-integrity
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+
+# Next.js
+
+.next/
+.vercel
+
+
+# Miscellaneous
+
+*.orig
+package-lock.json.orig
