@@ -73,6 +73,18 @@ exports.login = async (req, res) => {
   }
 };
 
+// ✅ NOVO: Endpoint para verificar configuração OAuth
+exports.getOAuthConfig = async (req, res) => {
+  try {
+    res.json({
+      github: !!(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET),
+      google: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET)
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching config', error: error.message });
+  }
+};
+
 exports.updateProfile = async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -91,13 +103,21 @@ exports.updateProfile = async (req, res) => {
 
     await user.save();
 
-    res.json({ message: 'Profile updated', user: { id: user.id, username: user.username, email: user.email, avatar: user.avatar, bio: user.bio } });
+    res.json({ 
+      message: 'Profile updated', 
+      user: { 
+        id: user.id, 
+        username: user.username, 
+        email: user.email, 
+        avatar: user.avatar, 
+        bio: user.bio 
+      } 
+    });
   } catch (error) {
     res.status(500).json({ message: 'Error updating profile', error: error.message });
   }
 };
 
-// Return current user based on JWT token
 exports.me = async (req, res) => {
   try {
     const userId = req.user.userId;
