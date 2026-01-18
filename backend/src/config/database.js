@@ -5,38 +5,27 @@ const connectDB = async () => {
     await sequelize.authenticate();
     console.log('✓ Database connected successfully');
 
-    if (process.env.NODE_ENV === 'production') {
-      await sequelize.sync({ alter: true });
-      console.log('✓ Database synchronized (production mode - data preserved)');
-    } 
-   
-    else if (process.env.FORCE_RECREATE === 'true') {
-      console.log('⚠️  FORCE_RECREATE ativado: Apagando TODAS as tabelas...');
-      await sequelize.sync({ force: true });
-      console.log('✓ Database synchronized (tables recreated - DATA LOST!)');
-    }
-   
-    else {
-      try {
-        if (sequelize.getDialect && sequelize.getDialect() === 'sqlite') {
-          await sequelize.query('PRAGMA foreign_keys = OFF;');
-          try {
-            await sequelize.sync({ alter: true });
-          } finally {
-            await sequelize.query('PRAGMA foreign_keys = ON;');
-          }
-        } else {
+    // MODO SEGURO: Usamos 'alter: true' para atualizar a estrutura sem apagar os dados
+    // Removemos o bloco 'FORCE_RECREATE' que estava a causar a perda de dados
+    try {
+      if (sequelize.getDialect && sequelize.getDialect() === 'sqlite') {
+        // No SQLite, desativamos as chaves estrangeiras temporariamente para permitir alterações de tabela
+        await sequelize.query('PRAGMA foreign_keys = OFF;');
+        try {
           await sequelize.sync({ alter: true });
+        } finally {
+          await sequelize.query('PRAGMA foreign_keys = ON;');
         }
-        console.log('✓ Database synchronized (safe mode - data preserved)');
-      } catch (syncError) {
-        console.warn('⚠️ Sync error:', syncError.message);
-        await sequelize.sync();
-        console.log('✓ Database synchronized (fallback - data preserved)');
+      } else {
+        await sequelize.sync({ alter: true });
       }
+      console.log('✓ Database synchronized (safe mode - data preserved)');
+    } catch (syncError) {
+      console.warn('⚠️ Sync error, falling back to basic sync:', syncError.message);
+      await sequelize.sync();
     }
 
-    // Adicionar colunas novas se necessário (sem apagar dados)
+    // Garante que colunas específicas existam (retrocompatibilidade)
     await ensureColumns();
     
   } catch (error) {
@@ -45,7 +34,7 @@ const connectDB = async () => {
   }
 };
 
-// Função auxiliar para adicionar colunas sem perder dados
+
 const ensureColumns = async () => {
   try {
     const [cols] = await sequelize.query("PRAGMA table_info('Capsules');");
@@ -53,14 +42,14 @@ const ensureColumns = async () => {
 
     if (!names.includes('codeSnippet')) {
       await sequelize.query("ALTER TABLE Capsules ADD COLUMN codeSnippet TEXT;");
-      console.log('✓ Added column: Capsules.codeSnippet');
+      console.log('✓ Added missing column: Capsules.codeSnippet');
     }
     if (!names.includes('language')) {
       await sequelize.query("ALTER TABLE Capsules ADD COLUMN language VARCHAR;");
-      console.log('✓ Added column: Capsules.language');
+      console.log('✓ Added missing column: Capsules.language');
     }
   } catch (err) {
-    console.warn('⚠️ Could not add columns:', err.message);
+    console.warn('⚠️ Could not verify/add columns:', err.message);
   }
 };
 

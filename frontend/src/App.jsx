@@ -8,23 +8,31 @@ import UserProfile from './pages/UserProfile';
 import CreateCapsule from './pages/CreateCapsule';
 import RevealCapsule from './pages/RevealCapsule';
 import AuthCallback from './pages/AuthCallback';
+import ForgotPassword from './pages/ForgotPassword';
+import './i18n'; 
 
 
+// Componente para proteger rotas privadas
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
- 
-  if (loading) return <div>Loading...</div>;
+  
+  if (loading) return <div className="loading-screen">A carregar linha do tempo...</div>;
   return user ? children : <Navigate to='/login' />;
 }
 
 function App() {
   return (
     <AuthProvider>
-      <Toaster />
+      <Toaster position="top-right" />
       <Router>
         <Routes>
+          {/* Rotas Públicas */}
           <Route path='/login' element={<Login />} />
           <Route path='/register' element={<Register />} />
+          <Route path='/forgot' element={<ForgotPassword />} />
+          <Route path='/auth/callback' element={<AuthCallback />} />
+          
+          {/* Rotas Privadas (Protegidas) */}
           <Route
             path='/dashboard'
             element={
@@ -49,12 +57,18 @@ function App() {
               </PrivateRoute>
             }
           />
+          
+          {/* Perfil (Pode ser público ou privado dependendo da tua lógica) */}
           <Route 
             path='/profile/:userId' 
             element={<UserProfile />} 
           />
-          <Route path='/auth/callback' element={<AuthCallback />} />
+
+          {/* Redirecionamento Inicial */}
           <Route path='/' element={<Navigate to='/dashboard' />} />
+          
+          {/* Rota 404 (Opcional) */}
+          <Route path='*' element={<Navigate to='/login' />} />
         </Routes>
       </Router>
     </AuthProvider>

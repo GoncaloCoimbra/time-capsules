@@ -13,9 +13,139 @@ import { capsuleAPI, categoryAPI, tagAPI, communityAPI, commentAPI, likeAPI, fav
 import TimelineView from '../components/TimelineView';
 import Achievements from '../components/Achievements';
 import DiscoverCommunity from '../components/DiscoverCommunity';
-import './Dashboard.css'; 
+import './Dashboard.css';
+
+// ✅ Adicione estes imports
+import { useTranslation } from 'react-i18next';
+import LanguageSelector from '../components/LanguageSelector';
+
+// Componente de Animação de Abertura de Cápsula
+const UnlockAnimation = ({ capsule, onComplete }) => {
+  useEffect(() => {
+    const timer = setTimeout(onComplete, 1500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <div className="capsule-unlock-animation">
+      <div className="unlock-particles">
+        {Array.from({ length: 20 }).map((_, i) => (
+          <div 
+            key={i}
+            className="unlock-particle"
+            style={{
+              '--tx': `${Math.cos(i * 18) * 100}px`,
+              '--ty': `${Math.sin(i * 18) * 100}px`,
+              animationDelay: `${i * 0.05}s`
+            }}
+          />
+        ))}
+      </div>
+      <div className="unlock-content">
+        <h3>{capsule?.title || "Cápsula Desbloqueada!"}</h3>
+        <div className="unlock-sparkle">✨</div>
+      </div>
+    </div>
+  );
+};
+
+// Componente de Modal de Preview
+const PreviewModal = ({ 
+  show, 
+  onClose, 
+  data, 
+  onConfirm 
+}) => {
+  if (!show || !data) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="modal-overlay"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.9, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.9, y: 20 }}
+        className="chronicle-card modal-card preview-modal"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button onClick={onClose} className="modal-close">×</button>
+        
+        <div className="preview-header">
+          <h2>🔍 Preview da Cápsula</h2>
+          <p className="preview-subtitle">Revise os detalhes antes de selar</p>
+        </div>
+        
+        <div className="preview-content">
+          <div className="preview-section">
+            <h3 style={{ color: '#e2b714', marginBottom: '8px' }}>{data.title}</h3>
+            <p style={{ color: '#94a3b8', marginBottom: '16px' }}>{data.content}</p>
+          </div>
+          
+          <div className="preview-details">
+            <div className="preview-detail">
+              <span>📅 Data de Desbloqueio:</span>
+              <strong>{new Date(data.unlockDate).toLocaleDateString('pt-PT', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              })}</strong>
+            </div>
+            
+            {data.category && (
+              <div className="preview-detail">
+                <span>🏷️ Categoria:</span>
+                <span className="tag" style={{ background: data.category.color }}>
+                  {data.category.name}
+                </span>
+              </div>
+            )}
+            
+            {data.tags && data.tags.length > 0 && (
+              <div className="preview-detail">
+                <span>🏷️ Tags:</span>
+                <div className="tags-container">
+                  {data.tags.map(tag => (
+                    <span key={tag.id} className="tag secondary">
+                      {tag.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <div className="preview-notice">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>⚠️</span>
+              <span>Após selar, a cápsula só poderá ser aberta na data especificada.</span>
+            </div>
+          </div>
+        </div>
+        
+        <div className="preview-actions">
+          <button onClick={onConfirm} className="chronicle-button">
+            ✅ Confirmar e Selar
+          </button>
+          <button onClick={onClose} className="btn-secondary">
+            ✏️ Editar Detalhes
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
 
 function Dashboard() {
+  // ✅ Adicione o hook de tradução
+  const { t } = useTranslation();
+  
   const [capsules, setCapsules] = useState([]);
   const [categories, setCategories] = useState([]);
   const [tags, setTags] = useState([]);
@@ -85,10 +215,25 @@ function Dashboard() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [capsuleToDelete, setCapsuleToDelete] = useState(null);
   
+  // Novos estados para funcionalidades extras
+  const [showUnlockAnimation, setShowUnlockAnimation] = useState(false);
+  const [animationCapsule, setAnimationCapsule] = useState(null);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewData, setPreviewData] = useState(null);
+  const [theme, setTheme] = useState(() => {
+    const savedTheme = localStorage.getItem('theme');
+    return savedTheme || 'dark';
+  });
+  
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const secondHandRef = useRef(null);
+
+  // Atualizar tema no body
+  useEffect(() => {
+    document.body.classList.toggle('light-mode', theme === 'light');
+  }, [theme]);
 
   // Atualizar tempo em tempo real
   useEffect(() => {
@@ -173,13 +318,199 @@ function Dashboard() {
         // novo desbloqueio - animar
         seenUnlockedRef.current.add(id);
         setRecentlyUnlocked(prev => [...prev, id]);
-        // remover animação após 3s
-        setTimeout(() => setRecentlyUnlocked(prev => prev.filter(x => x !== id)), 3000);
+        
+        // Mostrar animação de abertura
+        setAnimationCapsule(c);
+        setShowUnlockAnimation(true);
+        
+        // Remover animação após 3s
+        setTimeout(() => {
+          setShowUnlockAnimation(false);
+          setRecentlyUnlocked(prev => prev.filter(x => x !== id));
+        }, 3000);
       }
     });
   }, [capsules, currentTime]);
 
+  // Toggle Dark/Light Mode
+  const toggleTheme = () => {
+    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+    document.body.classList.toggle('light-mode');
+    localStorage.setItem('theme', newTheme);
+  };
+
+  // Export capsules
+  const exportCapsules = () => {
+    const data = JSON.stringify(capsules, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `capsules-backup-${Date.now()}.json`;
+    a.click();
+    toast.success(t('dashboard.exportSuccess'));
+  };
+
+  // Import capsules
+  const importCapsules = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const imported = JSON.parse(e.target.result);
+        
+        // Verificar se é um array
+        if (!Array.isArray(imported)) {
+          toast.error(t('dashboard.invalidFileFormat'));
+          return;
+        }
+        
+        // Processar e importar cápsulas
+        const importPromises = imported.map(async (capsule) => {
+          try {
+            // Remover IDs existentes para evitar conflitos
+            const { id, createdAt, updatedAt, ...capsuleData } = capsule;
+            
+            // Se a cápsula já existe (mesmo título e data), pular
+            const exists = capsules.find(c => 
+              c.title === capsule.title && 
+              c.unlockDate === capsule.unlockDate
+            );
+            
+            if (!exists) {
+              await capsuleAPI.create(capsuleData);
+            }
+          } catch (error) {
+            console.error('Erro ao importar cápsula:', error);
+          }
+        });
+        
+        await Promise.all(importPromises);
+        
+        // Recarregar dados
+        await loadAllData();
+        
+        toast.success(t('dashboard.importSuccess', { count: imported.length }));
+      } catch (error) {
+        console.error('Erro ao processar arquivo:', error);
+        toast.error(t('dashboard.importError'));
+      }
+    };
+    reader.readAsText(file);
+    
+    // Resetar input
+    event.target.value = '';
+  };
+
+  // Preview before sealing
+  const handlePreviewBeforeSealing = () => {
+    if (!title || !content || !unlockDate) {
+      toast.error(t('dashboard.fillRequiredFields'));
+      return;
+    }
+    
+    setPreviewData({
+      title,
+      content,
+      unlockDate,
+      category: categories.find(c => c.id === categoryId),
+      tags: tags.filter(t => selectedTags.includes(t.id)),
+      isPrivate,
+      color
+    });
+    setShowPreview(true);
+  };
+
+  // Confirmar criação após preview
+  const handleConfirmSave = async () => {
+    setShowPreview(false);
+    setLoading(true);
+    
+    try {
+      const capsuleData = {
+        title: previewData.title,
+        content: previewData.content,
+        unlockDate: previewData.unlockDate,
+        categoryId: previewData.category ? previewData.category.id : null,
+        isPrivate: previewData.isPrivate,
+        color: previewData.color,
+        reminder,
+        tags: previewData.tags.map(t => t.id)
+      };
+
+      if (editingId) {
+        await capsuleAPI.update(editingId, capsuleData);
+        toast.success(t('dashboard.updateSuccess'));
+      } else {
+        await capsuleAPI.create(capsuleData);
+        toast.success(t('dashboard.createSuccess'));
+      }
+      
+      // Reload capsules
+      await loadAllData();
+      
+      resetForm();
+    } catch (error) {
+      console.error('Error saving capsule:', error);
+      toast.error(t('dashboard.saveError', { error: error.response?.data?.message || error.message }));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Load data from API
+  const loadAllData = async () => {
+    try {
+      setLoading(true);
+      
+      // Load capsules based on scope
+      const capsulesRes = await capsuleAPI.getAll(capsuleScope === 'public' ? { scope: 'public' } : {});
+      setCapsules(capsulesRes.data.capsules || []);
+      
+      // Load categories - SEMPRE carregar as categorias do usuário
+      const categoriesRes = await categoryAPI.getAll();
+      setCategories(categoriesRes.data.categories || []);
+      
+      // Load tags
+      const tagsRes = await tagAPI.getAll();
+      setTags(tagsRes.data.tags || []);
+      
+      // Load statistics (apenas para minhas cápsulas)
+      if (capsuleScope === 'mine') {
+        const statsRes = await capsuleAPI.getStatistics();
+        setStatistics(statsRes.data.statistics);
+      }
+      
+      // Load community stats
+      const communityStatsRes = await communityAPI.getStats();
+      setCommunityStats(communityStatsRes.data);
+      
+      // Load leaderboard
+      const leaderboardRes = await communityAPI.getLeaderboard({ type: 'capsules' });
+      setLeaderboard(leaderboardRes.data.leaderboard || []);
+      
+      // Load trending techs
+      const trendingRes = await communityAPI.getTrendingTechs();
+      setTrendingTech(trendingRes.data.trending || []);
+
+      // Load notifications
+      try {
+        const notifRes = await notificationAPI.list();
+        setNotifications(notifRes.data.notifications || []);
+      } catch (err) {
+        // ignore
+      }
+      
+      setLoading(false);
+    } catch (error) {
+      console.error('Error loading data:', error);
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadAllData();
     loadLocalReminders();
@@ -317,55 +648,6 @@ function Dashboard() {
     } catch (err) {}
   };
 
-  const loadAllData = async () => {
-    try {
-      setLoading(true);
-      
-      // Load capsules based on scope
-      const capsulesRes = await capsuleAPI.getAll(capsuleScope === 'public' ? { scope: 'public' } : {});
-      setCapsules(capsulesRes.data.capsules || []);
-      
-      // Load categories - SEMPRE carregar as categorias do usuário
-      const categoriesRes = await categoryAPI.getAll();
-      setCategories(categoriesRes.data.categories || []);
-      
-      // Load tags
-      const tagsRes = await tagAPI.getAll();
-      setTags(tagsRes.data.tags || []);
-      
-      // Load statistics (apenas para minhas cápsulas)
-      if (capsuleScope === 'mine') {
-        const statsRes = await capsuleAPI.getStatistics();
-        setStatistics(statsRes.data.statistics);
-      }
-      
-      // Load community stats
-      const communityStatsRes = await communityAPI.getStats();
-      setCommunityStats(communityStatsRes.data);
-      
-      // Load leaderboard
-      const leaderboardRes = await communityAPI.getLeaderboard({ type: 'capsules' });
-      setLeaderboard(leaderboardRes.data.leaderboard || []);
-      
-      // Load trending techs
-      const trendingRes = await communityAPI.getTrendingTechs();
-      setTrendingTech(trendingRes.data.trending || []);
-
-      // Load notifications
-      try {
-        const notifRes = await notificationAPI.list();
-        setNotifications(notifRes.data.notifications || []);
-      } catch (err) {
-        // ignore
-      }
-      
-      setLoading(false);
-    } catch (error) {
-      console.error('Error loading data:', error);
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
     filterAndSortCapsules();
   }, [capsules, filter, searchTerm, sortBy, showFavoritesOnly, currentTime]);
@@ -396,36 +678,7 @@ function Dashboard() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    
-    try {
-      const capsuleData = {
-        title,
-        content,
-        unlockDate,
-        categoryId: categoryId || null,
-        isPrivate,
-        color,
-        reminder,
-        tags: selectedTags
-      };
-
-      if (editingId) {
-        await capsuleAPI.update(editingId, capsuleData);
-      } else {
-        await capsuleAPI.create(capsuleData);
-      }
-      
-      // Reload capsules
-      await loadAllData();
-      
-      resetForm();
-    } catch (error) {
-      console.error('Error saving capsule:', error);
-      alert('Erro ao Guardar cápsula: ' + (error.response?.data?.message || error.message));
-    } finally {
-      setLoading(false);
-    }
+    handlePreviewBeforeSealing();
   };
 
   const handleCategorySubmit = async (e) => {
@@ -437,9 +690,10 @@ function Dashboard() {
       setCategoryName('');
       setCategoryColor('#e2b714');
       setShowCategoryForm(false);
+      toast.success(t('dashboard.categoryCreateSuccess'));
     } catch (error) {
       console.error('Error creating category:', error);
-      alert('Erro ao criar categoria: ' + (error.response?.data?.message || error.message));
+      toast.error(t('dashboard.categoryCreateError', { error: error.response?.data?.message || error.message }));
     }
   };
 
@@ -451,8 +705,10 @@ function Dashboard() {
       setTags(res.data.tags || []);
       setTagName('');
       setShowTagForm(false);
+      toast.success(t('dashboard.tagCreateSuccess'));
     } catch (error) {
       console.error('Error creating tag:', error);
+      toast.error(t('dashboard.tagCreateError', { error: error.response?.data?.message || error.message }));
     }
   };
 
@@ -483,10 +739,11 @@ function Dashboard() {
       setShowDeleteConfirm(false);
       setCapsuleToDelete(null);
       if (selectedCapsule?.id === capsuleId) setSelectedCapsule(null);
+      toast.success(t('dashboard.deleteSuccess'));
     } catch (error) {
       console.error('Error deleting capsule:', error);
-      const message = (error?.response?.data?.message) || error?.message || 'Erro ao excluir a cápsula. Tente novamente.';
-      alert(message);
+      const message = (error?.response?.data?.message) || error?.message || t('dashboard.deleteError');
+      toast.error(message);
       if (error?.response?.status === 401) {
         navigate('/login');
       }
@@ -507,6 +764,8 @@ function Dashboard() {
       setCapsules(prev => prev.map(c => 
         c.id === id ? { ...c, isFavorited: fav } : c
       ));
+      
+      toast.success(fav ? t('dashboard.addedToFavorites') : t('dashboard.removedFromFavorites'));
     } catch (error) {
       console.error('Error toggling favorite:', error);
       setCapsules(prev => prev.map(c => 
@@ -530,8 +789,10 @@ function Dashboard() {
           : c
       ));
       setCommentText('');
+      toast.success(t('dashboard.commentAdded'));
     } catch (error) {
       console.error('Error adding comment:', error);
+      toast.error(t('dashboard.commentError'));
     }
   };
 
@@ -545,8 +806,10 @@ function Dashboard() {
           ? { ...c, likes: count, viewCount: (c.viewCount || 0) + 1 }
           : c
       ));
+      toast.success(t('dashboard.likeUpdated'));
     } catch (error) {
       console.error('Error toggling like:', error);
+      toast.error(t('dashboard.likeError'));
     }
   };
 
@@ -587,7 +850,11 @@ function Dashboard() {
   };
 
   const handleScheduleSave = async () => {
-    if (!reminderTextLocal || !reminderDateLocal) return alert('Preencha texto e data.');
+    if (!reminderTextLocal || !reminderDateLocal) {
+      toast.error(t('dashboard.fillReminderFields'));
+      return;
+    }
+    
     const id = 'local-' + Date.now();
     const obj = { id, text: reminderTextLocal, date: reminderDateLocal, fired: false };
     try {
@@ -612,8 +879,10 @@ function Dashboard() {
       setNotifyCommunity(false);
       // Inform user
       setNotifications(prev => [{ id, type: 'reminder-scheduled', createdAt: new Date().toISOString(), meta: { text: obj.text, date: obj.date }, local: true }, ...prev]);
+      toast.success(t('dashboard.reminderScheduled'));
     } catch (err) {
       console.error('Erro ao Guardar lembrete local', err);
+      toast.error(t('dashboard.reminderError'));
     }
   };
 
@@ -642,13 +911,13 @@ function Dashboard() {
 
   const formatTimeAgo = (date) => {
     const seconds = Math.floor((new Date() - new Date(date)) / 1000);
-    if (seconds < 60) return 'agora mesmo';
+    if (seconds < 60) return t('time.justNow');
     const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `há ${minutes}m`;
+    if (minutes < 60) return t('time.minutesAgo', { minutes });
     const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `há ${hours}h`;
+    if (hours < 24) return t('time.hoursAgo', { hours });
     const days = Math.floor(hours / 24);
-    return `há ${days}d`;
+    return t('time.daysAgo', { days });
   };
 
   const CodeBlock = ({ code, language }) => {
@@ -687,6 +956,22 @@ function Dashboard() {
     <div className="time-chronicle-dashboard">
       {/* Fundo com partículas */}
       <div className="dashboard-particles"></div>
+      
+      {/* Animação de desbloqueio */}
+      {showUnlockAnimation && animationCapsule && (
+        <UnlockAnimation
+          capsule={animationCapsule}
+          onComplete={() => setShowUnlockAnimation(false)}
+        />
+      )}
+      
+      {/* Modal de Preview */}
+      <PreviewModal
+        show={showPreview}
+        onClose={() => setShowPreview(false)}
+        data={previewData}
+        onConfirm={handleConfirmSave}
+      />
       
       {/* Relógio Analógico de Fundo */}
       <div className="dashboard-clock">
@@ -745,8 +1030,8 @@ function Dashboard() {
         </div>
       </div>
       
-      {/* Header */}
-      <div className="dashboard-header">
+      {/* Header - CORRIGIDO PARA LANGUAGE SELECTOR VISÍVEL */}
+      <div className="dashboard-header" style={{ position: 'relative', zIndex: 1000, overflow: 'visible' }}>
         <div className="header-left">
           <div className="time-glyph"> 
             <div className="glyph-circle">
@@ -756,11 +1041,11 @@ function Dashboard() {
           </div>
           <div className="header-text">
             <h1 className="chronicle-title">Time Chronicle</h1>
-            <p className="chronicle-subtitle">Dashboard Temporal</p>
+            <p className="chronicle-subtitle">{t('dashboard.title')}</p>
           </div>
         </div>
         
-        <div className="header-right">
+        <div className="header-right" style={{ position: 'relative', zIndex: 1000 }}>
           <div className="time-display">
             <div className="digital-time">{formatTime(currentTime)}</div>
             <div className="digital-date">
@@ -772,22 +1057,41 @@ function Dashboard() {
             </div>
           </div>
           
+          {/* ✅ LanguageSelector CORRETAMENTE POSICIONADO */}
+          <div style={{ position: 'relative', zIndex: 10000 }}>
+            <LanguageSelector />
+          </div>
+          
+          {/* Toggle de Tema com Ícones SVG */}
+          <button onClick={toggleTheme} className="theme-toggle" title={t('dashboard.toggleTheme')}>
+            <span className="theme-icon sun">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58c-.39-.39-1.03-.39-1.41 0-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0 .39-.39.39-1.03 0-1.41L5.99 4.58zm12.37 12.37c-.39-.39-1.03-.39-1.41 0-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0 .39-.39.39-1.03 0-1.41l-1.06-1.06zm1.06-10.96c.39-.39.39-1.03 0-1.41-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41.39.39 1.03.39 1.41 0l1.06-1.06zM7.05 18.36c.39-.39.39-1.03 0-1.41-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41.39.39 1.03.39 1.41 0l1.06-1.06z"/>
+              </svg>
+            </span>
+            <span className="theme-icon moon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/>
+              </svg>
+            </span>
+          </button>
+          
           <div className="user-info">
             <div className="notifications">
               <button className="notif-btn" onClick={() => setActiveTab('notifications')}>
                 🔔 {notifications.filter(n => !n.read).length}
               </button>
-            <button className="btn-schedule" onClick={() => setShowScheduleModal(true)}>
-           <span className="btn-schedule-icon">⏰</span>
- Agendar lembrete
-</button>
+              <button className="btn-schedule" onClick={() => setShowScheduleModal(true)}>
+                <span className="btn-schedule-icon">⏰</span>
+                {t('dashboard.scheduleReminder')}
+              </button>
             </div>
-            <div className="user-avatar" onClick={goToUserProfile} style={{ cursor: 'pointer' }} title="Clique para ver perfil">
+            <div className="user-avatar" onClick={goToUserProfile} style={{ cursor: 'pointer' }} title={t('dashboard.viewProfile')}>
               {user?.username?.substring(0, 2).toUpperCase() || 'US'}
             </div>
             <div className="user-details">
               <span className="user-name">{user?.username || 'User'}</span>
-              <span className="user-role">Time Traveler</span>
+              <span className="user-role">{t('dashboard.timeTraveler')}</span>
             </div>
             <button onClick={handleLogout} className="logout-button">
               <svg viewBox="0 0 24 24">
@@ -800,7 +1104,7 @@ function Dashboard() {
       
       {/* Conteúdo Principal */}
       <div className="dashboard-content">
-        {/* Sidebar - AGORA APENAS COM NAVEGAÇÃO */}
+        {/* Sidebar */}
         <div className="dashboard-sidebar">
           <nav className="sidebar-nav">
             <button 
@@ -810,7 +1114,7 @@ function Dashboard() {
               <svg className="nav-icon" viewBox="0 0 24 24">
                 <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V8l8 5 8-5v10zm-8-7L4 6h16l-8 5z"/>
               </svg>
-              <span>Cápsulas</span>
+              <span>{t('sidebar.capsules')}</span>
             </button>
             
             <button 
@@ -820,7 +1124,7 @@ function Dashboard() {
               <svg className="nav-icon" viewBox="0 0 24 24">
                 <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
               </svg>
-              <span>Estatísticas</span>
+              <span>{t('sidebar.statistics')}</span>
             </button>
             
             <button 
@@ -830,7 +1134,7 @@ function Dashboard() {
               <svg className="nav-icon" viewBox="0 0 24 24">
                 <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>
               </svg>
-              <span>Viagem Temporal</span>
+              <span>{t('sidebar.timeTravel')}</span>
             </button>
 
             <button 
@@ -840,7 +1144,7 @@ function Dashboard() {
               <svg className="nav-icon" viewBox="0 0 24 24">
                 <path d="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"/>
               </svg>
-              <span>Timeline</span>
+              <span>{t('sidebar.timeline')}</span>
             </button>
             
             <button 
@@ -850,7 +1154,7 @@ function Dashboard() {
               <svg className="nav-icon" viewBox="0 0 24 24">
                 <path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/>
               </svg>
-              <span>Trending</span>
+              <span>{t('sidebar.trending')}</span>
             </button>
 
             <button 
@@ -860,7 +1164,7 @@ function Dashboard() {
               <svg className="nav-icon" viewBox="0 0 24 24">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
               </svg>
-              <span>Achievements</span>
+              <span>{t('sidebar.achievements')}</span>
             </button>
 
             <button 
@@ -870,7 +1174,39 @@ function Dashboard() {
               <svg className="nav-icon" viewBox="0 0 24 24">
                 <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
               </svg>
-              <span>Comunidade</span>
+              <span>{t('sidebar.community')}</span>
+            </button>
+            
+            {/* Botões de Export/Import */}
+            <div className="sidebar-divider"></div>
+            
+            <button 
+              className="nav-item"
+              onClick={exportCapsules}
+              title={t('dashboard.exportTooltip')}
+            >
+              <svg className="nav-icon" viewBox="0 0 24 24">
+                <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+              </svg>
+              <span>{t('dashboard.export')}</span>
+            </button>
+
+            <button 
+              className="nav-item"
+              onClick={() => document.getElementById('import-input').click()}
+              title={t('dashboard.importTooltip')}
+            >
+              <input
+                id="import-input"
+                type="file"
+                accept=".json"
+                style={{ display: 'none' }}
+                onChange={importCapsules}
+              />
+              <svg className="nav-icon" viewBox="0 0 24 24">
+                <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/>
+              </svg>
+              <span>{t('dashboard.import')}</span>
             </button>
           </nav>
         </div>
@@ -881,22 +1217,33 @@ function Dashboard() {
           {showScheduleModal && (
             <div className="modal-overlay">
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="modal-card">
-                <h3>⏰ Agendar Lembrete</h3>
+                <h3>⏰ {t('dashboard.scheduleReminder')}</h3>
                 <div style={{ display: 'grid', gap: 8 }}>
-                  <input placeholder="Texto do lembrete" value={reminderTextLocal} onChange={(e) => setReminderTextLocal(e.target.value)} className="chronicle-input" />
-                  <input type="datetime-local" value={reminderDateLocal} onChange={(e) => setReminderDateLocal(e.target.value)} className="chronicle-input" />
+                  <input 
+                    placeholder={t('dashboard.reminderTextPlaceholder')} 
+                    value={reminderTextLocal} 
+                    onChange={(e) => setReminderTextLocal(e.target.value)} 
+                    className="chronicle-input" 
+                  />
+                  <input 
+                    type="datetime-local" 
+                    value={reminderDateLocal} 
+                    onChange={(e) => setReminderDateLocal(e.target.value)} 
+                    className="chronicle-input" 
+                  />
                   <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <input type="checkbox" checked={notifyCommunity} onChange={(e) => setNotifyCommunity(e.target.checked)} />
-                    <span style={{ color: '#94a3b8', fontSize: 13 }}>Notificar comunidade (se suportado pelo backend)</span>
+                    <span style={{ color: '#94a3b8', fontSize: 13 }}>{t('dashboard.notifyCommunity')}</span>
                   </label>
                 </div>
                 <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
-                  <button className="chronicle-button" onClick={handleScheduleSave}>Guardar</button>
-                  <button className="btn-secondary" onClick={() => setShowScheduleModal(false)}>Cancelar</button>
+                  <button className="chronicle-button" onClick={handleScheduleSave}>{t('common.save')}</button>
+                  <button className="btn-secondary" onClick={() => setShowScheduleModal(false)}>{t('common.cancel')}</button>
                 </div>
               </motion.div>
             </div>
           )}
+          
           {/* Cápsulas */}
           {activeTab === 'capsules' && (
             <motion.div
@@ -906,7 +1253,7 @@ function Dashboard() {
             >
               <div className="card-header">
                 <h2>
-                  {capsuleScope === 'mine' ? 'Suas Cápsulas Temporais' : 'Cápsulas Públicas da Comunidade'}
+                  {capsuleScope === 'mine' ? t('dashboard.myCapsules') : t('dashboard.publicCapsules')}
                 </h2>
                 <div className="card-actions">
                   {/* Toggle entre Minhas Cápsulas e Cápsulas Públicas */}
@@ -915,13 +1262,13 @@ function Dashboard() {
                       className={`scope-btn ${capsuleScope === 'mine' ? 'active' : ''}`}
                       onClick={() => setCapsuleScope('mine')}
                     >
-                      Minhas
+                      {t('dashboard.mine')}
                     </button>
                     <button 
                       className={`scope-btn ${capsuleScope === 'public' ? 'active' : ''}`}
                       onClick={() => setCapsuleScope('public')}
                     >
-                      Públicas
+                      {t('dashboard.public')}
                     </button>
                   </div>
                   
@@ -929,7 +1276,7 @@ function Dashboard() {
                     onClick={() => navigate('/create')}
                     className="chronicle-button"
                   >
-                    Nova Cápsula
+                    {t('dashboard.newCapsule')}
                   </button>
                   <div className="search-container">
                     <svg className="search-icon" viewBox="0 0 24 24">
@@ -937,7 +1284,7 @@ function Dashboard() {
                     </svg>
                     <input
                       type="text"
-                      placeholder="Buscar cápsulas..."
+                      placeholder={t('dashboard.searchPlaceholder')}
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="chronicle-input"
@@ -953,11 +1300,11 @@ function Dashboard() {
                   animate={{ opacity: 1, height: 'auto' }}
                   className="capsule-form"
                 >
-                  <h3>{editingId ? 'Editar Cápsula' : 'Criar Nova Cápsula'}</h3>
+                  <h3>{editingId ? t('dashboard.editCapsule') : t('dashboard.createCapsule')}</h3>
                   <form onSubmit={handleSubmit}>
                     <div className="form-grid">
                       <div className="form-group">
-                        <label>Título</label>
+                        <label>{t('dashboard.title')}</label>
                         <input
                           type="text"
                           value={title}
@@ -968,7 +1315,7 @@ function Dashboard() {
                       </div>
                       
                       <div className="form-group">
-                        <label>Data de Desbloqueio</label>
+                        <label>{t('dashboard.unlockDate')}</label>
                         <input
                           type="datetime-local"
                           value={unlockDate}
@@ -979,7 +1326,7 @@ function Dashboard() {
                       </div>
                       
                       <div className="form-group full-width">
-                        <label>Conteúdo</label>
+                        <label>{t('dashboard.content')}</label>
                         <textarea
                           value={content}
                           onChange={(e) => setContent(e.target.value)}
@@ -990,22 +1337,22 @@ function Dashboard() {
                       </div>
                       
                       <div className="form-group">
-                        <label>Categoria</label>
+                        <label>{t('dashboard.category')}</label>
                         {categories.length === 0 ? (
                           <div className="no-categories">
                             <small style={{ display: 'block', marginBottom: '8px', color: '#94a3b8' }}>
-                              Nenhuma categoria encontrada. 
+                              {t('dashboard.noCategories')}
                               <button 
                                 type="button" 
                                 className="link-btn" 
                                 onClick={() => setShowCategoryForm(true)}
                                 style={{ marginLeft: '4px', color: '#e2b714', textDecoration: 'underline', cursor: 'pointer' }}
                               >
-                                Criar categoria
+                                {t('dashboard.createCategory')}
                               </button>
                             </small>
                             <select disabled className="chronicle-input">
-                              <option>— Nenhuma disponível —</option>
+                              <option>— {t('dashboard.noneAvailable')} —</option>
                             </select>
                           </div>
                         ) : (
@@ -1014,7 +1361,7 @@ function Dashboard() {
                             onChange={(e) => setCategoryId(e.target.value)}
                             className="chronicle-input"
                           >
-                            <option value="">Selecione...</option>
+                            <option value="">{t('common.select')}...</option>
                             {categories.map(cat => (
                               <option key={cat.id} value={cat.id}>{cat.name}</option>
                             ))}
@@ -1027,13 +1374,13 @@ function Dashboard() {
                             onClick={() => setShowCategoryForm(true)}
                             style={{ marginTop: '8px', fontSize: '12px', color: '#e2b714' }}
                           >
-                            + Adicionar nova categoria
+                            + {t('dashboard.addNewCategory')}
                           </button>
                         )}
                       </div>
                       
                       <div className="form-group">
-                        <label>Cor</label>
+                        <label>{t('dashboard.color')}</label>
                         <input
                           type="color"
                           value={color}
@@ -1051,12 +1398,12 @@ function Dashboard() {
                             onChange={(e) => setIsPrivate(!e.target.checked)}
                             style={{ width: '20px', height: '20px', cursor: 'pointer' }}
                           />
-                          <span>Tornar esta cápsula pública após desbloqueio</span>
+                          <span>{t('dashboard.makePublic')}</span>
                         </label>
                         <small style={{ display: 'block', marginTop: '4px', color: '#94a3b8' }}>
                           {isPrivate 
-                            ? '🔒 Esta cápsula será privada - apenas você poderá vê-la' 
-                            : '🌍 Esta cápsula será pública após desbloqueio - outros usuários poderão vê-la'
+                            ? t('dashboard.privateDescription')
+                            : t('dashboard.publicDescription')
                           }
                         </small>
                       </div>
@@ -1064,10 +1411,10 @@ function Dashboard() {
                     
                     <div className="form-actions">
                       <button type="submit" className="chronicle-button" disabled={loading}>
-                        {loading ? 'Salvando...' : (editingId ? 'Atualizar' : 'Criar Cápsula')}
+                        {loading ? t('common.saving') : (editingId ? t('dashboard.previewUpdate') : t('dashboard.previewCapsule'))}
                       </button>
                       <button type="button" onClick={resetForm} className="btn-secondary">
-                        Cancelar
+                        {t('common.cancel')}
                       </button>
                     </div>
                   </form>
@@ -1082,22 +1429,22 @@ function Dashboard() {
                   className="capsule-form"
                   style={{ marginTop: '16px', padding: '16px', background: 'rgba(30, 41, 59, 0.5)', borderRadius: '8px' }}
                 >
-                  <h4>Nova Categoria</h4>
+                  <h4>{t('dashboard.newCategory')}</h4>
                   <form onSubmit={handleCategorySubmit}>
                     <div className="form-grid">
                       <div className="form-group">
-                        <label>Nome da Categoria</label>
+                        <label>{t('dashboard.categoryName')}</label>
                         <input
                           type="text"
                           value={categoryName}
                           onChange={(e) => setCategoryName(e.target.value)}
                           required
                           className="chronicle-input"
-                          placeholder="Ex: Projetos, Pessoal..."
+                          placeholder={t('dashboard.categoryPlaceholder')}
                         />
                       </div>
                       <div className="form-group">
-                        <label>Cor</label>
+                        <label>{t('dashboard.color')}</label>
                         <input
                           type="color"
                           value={categoryColor}
@@ -1107,9 +1454,9 @@ function Dashboard() {
                       </div>
                     </div>
                     <div className="form-actions">
-                      <button type="submit" className="chronicle-button">Criar Categoria</button>
+                      <button type="submit" className="chronicle-button">{t('dashboard.createCategory')}</button>
                       <button type="button" onClick={() => setShowCategoryForm(false)} className="btn-secondary">
-                        Cancelar
+                        {t('common.cancel')}
                       </button>
                     </div>
                   </form>
@@ -1122,8 +1469,8 @@ function Dashboard() {
                   <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
                     <p>
                       {capsuleScope === 'mine' 
-                        ? 'Você ainda não tem cápsulas. Crie sua primeira!' 
-                        : 'Nenhuma cápsula pública disponível no momento.'
+                        ? t('dashboard.noCapsules')
+                        : t('dashboard.noPublicCapsules')
                       }
                     </p>
                   </div>
@@ -1154,8 +1501,8 @@ function Dashboard() {
                         <div className="capsule-info">
                           <h3>{capsule.title}</h3>
                           <span className="capsule-author">
-                            Por {capsule.metadata?.author}
-                            {isMyOwnCapsule && ' (Você)'}
+                            {t('dashboard.by')} {capsule.metadata?.author}
+                            {isMyOwnCapsule && ` (${t('common.you')})`}
                           </span>
                         </div>
                         {isMyOwnCapsule && (
@@ -1180,26 +1527,26 @@ function Dashboard() {
                           </span>
                         ))}
                         <span className={`tag ${localUnlocked ? 'unlocked' : 'locked'}`}>
-                          {localUnlocked ? '🔓 Desbloqueada' : '🔒 Bloqueada'}
+                          {localUnlocked ? t('dashboard.unlocked') : t('dashboard.locked')}
                         </span>
                         {!capsule.isPrivate && (
                           <span className="tag" style={{ background: '#1f7a8c' }}>
-                            🌍 Pública
+                            🌍 {t('dashboard.public')}
                           </span>
                         )}
                       </div>
                       
                       <div className="capsule-details">
                         <div className="detail">
-                          <span>Desbloqueia:</span>
+                          <span>{t('dashboard.unlocks')}:</span>
                           <strong>{new Date(capsule.unlockDate).toLocaleDateString('pt-PT')}</strong>
                         </div>
                         <div className="detail">
-                          <span>Visualizações:</span>
+                          <span>{t('dashboard.views')}:</span>
                           <strong>{capsule.viewCount || 0}</strong>
                         </div>
                         <div className="detail">
-                          <span>Likes:</span>
+                          <span>{t('dashboard.likes')}:</span>
                           <strong>{capsule.likes || 0}</strong>
                         </div>
                       </div>
@@ -1216,13 +1563,13 @@ function Dashboard() {
                             onClick={(e) => { e.stopPropagation(); navigate(`/reveal/${capsule.id}`); }}
                             className="chronicle-button"
                           >
-                            Abrir
+                            {t('common.open')}
                           </button>
                           <button
                             onClick={(e) => { e.stopPropagation(); handleEdit(capsule); }}
                             className="btn-secondary"
                           >
-                            Editar
+                            {t('common.edit')}
                           </button>
                           <button
                             onClick={(e) => { 
@@ -1231,7 +1578,7 @@ function Dashboard() {
                             }}
                             className="btn-danger"
                           >
-                            Excluir
+                            {t('common.delete')}
                           </button>
                         </div>
                       )}
@@ -1249,34 +1596,34 @@ function Dashboard() {
               animate={{ opacity: 1, y: 0 }} 
               className="chronicle-card main-card"
             >
-              <h2>Estatísticas Temporais</h2>
+              <h2>{t('dashboard.statistics')}</h2>
               <div className="stats-grid">
                 <div className="stat-card">
                   <div className="stat-icon">📊</div>
                   <div className="stat-content">
                     <h3>{capsules.length}</h3>
-                    <p>Cápsulas Totais</p>
+                    <p>{t('dashboard.totalCapsules')}</p>
                   </div>
                 </div>
                 <div className="stat-card">
                   <div className="stat-icon">🔒</div>
                   <div className="stat-content">
                     <h3>{capsules.filter(c => !(c.isUnlocked || new Date(c.unlockDate) <= currentTime)).length}</h3>
-                    <p>Bloqueadas</p>
+                    <p>{t('dashboard.locked')}</p>
                   </div>
                 </div>
                 <div className="stat-card">
                   <div className="stat-icon">🔓</div>
                   <div className="stat-content">
                     <h3>{capsules.filter(c => (c.isUnlocked || new Date(c.unlockDate) <= currentTime)).length}</h3>
-                    <p>Desbloqueadas</p>
+                    <p>{t('dashboard.unlocked')}</p>
                   </div>
                 </div>
                 <div className="stat-card">
                   <div className="stat-icon">👁️</div>
                   <div className="stat-content">
                     <h3>{capsules.reduce((sum, c) => sum + (c.viewCount || 0), 0)}</h3>
-                    <p>Visualizações</p>
+                    <p>{t('dashboard.views')}</p>
                   </div>
                 </div>
               </div>
@@ -1284,10 +1631,10 @@ function Dashboard() {
               {/* Gráficos adicionais de estatísticas */}
               {statistics && (
                 <div className="advanced-stats">
-                  <h3>Estatísticas Avançadas</h3>
+                  <h3>{t('dashboard.advancedStatistics')}</h3>
                   <div className="charts-grid">
                     <div className="chart-container">
-                      <h4>Desbloqueios por Mês</h4>
+                      <h4>{t('dashboard.unlocksByMonth')}</h4>
                       <ResponsiveContainer width="100%" height={200}>
                         <AreaChart data={statistics.unlocksByMonth || []}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
@@ -1309,7 +1656,7 @@ function Dashboard() {
                     </div>
                     
                     <div className="chart-container">
-                      <h4>Distribuição por Categoria</h4>
+                      <h4>{t('dashboard.categoryDistribution')}</h4>
                       <ResponsiveContainer width="100%" height={200}>
                         <PieChart>
                           <Pie
@@ -1346,8 +1693,8 @@ function Dashboard() {
               className="chronicle-card main-card"
             >
               <div className="time-travel-header">
-                <h2>🌌 Viagem Temporal</h2>
-                <p className="card-subtitle">Explore o futuro e descubra cápsulas que serão desbloqueadas</p>
+                <h2>🌌 {t('dashboard.timeTravel')}</h2>
+                <p className="card-subtitle">{t('dashboard.timeTravelDescription')}</p>
               </div>
               
               <div className="time-travel-machine">
@@ -1382,7 +1729,7 @@ function Dashboard() {
                       className="chronicle-button"
                       disabled={!timeTravelDate}
                     >
-                      🚀 Iniciar Viagem
+                      🚀 {t('dashboard.startTravel')}
                     </button>
                   </div>
                 </div>
@@ -1394,11 +1741,11 @@ function Dashboard() {
                   animate={{ opacity: 1, height: 'auto' }}
                   className="time-travel-results"
                 >
-                  <h3 className="section-title">⚡ Cápsulas Encontradas</h3>
+                  <h3 className="section-title">⚡ {t('dashboard.capsulesFound')}</h3>
                   <p style={{ color: '#94a3b8', marginBottom: '30px' }}>
                     {timeTravelResults.length > 0 
-                      ? `Encontradas ${timeTravelResults.length} cápsulas que seriam desbloqueadas nesta data:`
-                      : 'Nenhuma cápsula seria desbloqueada nesta data.'
+                      ? t('dashboard.capsulesFoundCount', { count: timeTravelResults.length })
+                      : t('dashboard.noCapsulesFound')
                     }
                   </p>
                   
@@ -1409,11 +1756,11 @@ function Dashboard() {
                           <div className="capsule-time-info">
                             <div className="time-badge">
                               <i>⏳</i>
-                              <span>Desbloqueia: {new Date(capsule.unlockDate).toLocaleDateString('pt-PT')}</span>
+                              <span>{t('dashboard.unlocks')}: {new Date(capsule.unlockDate).toLocaleDateString('pt-PT')}</span>
                             </div>
                             <div className="time-badge">
                               <i>🎯</i>
-                              <span>Viagem: {new Date(timeTravelDate).toLocaleDateString('pt-PT')}</span>
+                              <span>{t('dashboard.travel')}: {new Date(timeTravelDate).toLocaleDateString('pt-PT')}</span>
                             </div>
                           </div>
                           
@@ -1426,7 +1773,7 @@ function Dashboard() {
                               </span>
                             )}
                             <span className="tag" style={{ background: '#1f7a8c' }}>
-                              🚀 Viagem Temporal
+                              🚀 {t('dashboard.timeTravel')}
                             </span>
                           </div>
                           
@@ -1440,7 +1787,7 @@ function Dashboard() {
                               className="btn-secondary"
                               style={{ flex: 1 }}
                             >
-                              👁️ Visualizar
+                              👁️ {t('common.view')}
                             </button>
                           </div>
                         </div>
@@ -1451,19 +1798,19 @@ function Dashboard() {
               )}
               
               <div style={{ marginTop: '40px', padding: '25px', background: 'rgba(226, 183, 20, 0.05)', borderRadius: '16px' }}>
-                <h3 style={{ color: '#e2b714', marginBottom: '15px' }}>📖 Como funciona a Viagem Temporal?</h3>
+                <h3 style={{ color: '#e2b714', marginBottom: '15px' }}>📖 {t('dashboard.howItWorks')}</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
                   <div>
-                    <h4 style={{ color: '#f1f5f9', marginBottom: '8px' }}>1. Selecione uma Data</h4>
-                    <p style={{ color: '#94a3b8', fontSize: '14px' }}>Escolha qualquer data futura para simular uma viagem no tempo.</p>
+                    <h4 style={{ color: '#f1f5f9', marginBottom: '8px' }}>1. {t('dashboard.selectDate')}</h4>
+                    <p style={{ color: '#94a3b8', fontSize: '14px' }}>{t('dashboard.selectDateDescription')}</p>
                   </div>
                   <div>
-                    <h4 style={{ color: '#f1f5f9', marginBottom: '8px' }}>2. Inicie a Viagem</h4>
-                    <p style={{ color: '#94a3b8', fontSize: '14px' }}>Clique em "Iniciar Viagem" para ver o que encontraria.</p>
+                    <h4 style={{ color: '#f1f5f9', marginBottom: '8px' }}>2. {t('dashboard.startTravel')}</h4>
+                    <p style={{ color: '#94a3b8', fontSize: '14px' }}>{t('dashboard.startTravelDescription')}</p>
                   </div>
                   <div>
-                    <h4 style={{ color: '#f1f5f9', marginBottom: '8px' }}>3. Explore as Cápsulas</h4>
-                    <p style={{ color: '#94a3b8', fontSize: '14px' }}>Veja quais cápsulas estariam desbloqueadas naquela data.</p>
+                    <h4 style={{ color: '#f1f5f9', marginBottom: '8px' }}>3. {t('dashboard.exploreCapsules')}</h4>
+                    <p style={{ color: '#94a3b8', fontSize: '14px' }}>{t('dashboard.exploreCapsulesDescription')}</p>
                   </div>
                 </div>
               </div>
@@ -1478,16 +1825,16 @@ function Dashboard() {
               className="chronicle-card main-card"
             >
               <div className="trending-header">
-                <h2>📈 Trending & Tendências</h2>
-                <p className="card-subtitle">Descubra o que está em alta na comunidade Time Chronicle</p>
+                <h2>📈 {t('dashboard.trending')}</h2>
+                <p className="card-subtitle">{t('dashboard.trendingDescription')}</p>
               </div>
               
               <div className="trending-grid-modern">
                 <div className="trend-card-modern">
                   <div className="trend-card-header">
                     <div className="trend-title-section">
-                      <h3>🔥 Tecnologias em Alta</h3>
-                      <span className="trend-category">Desenvolvimento</span>
+                      <h3>🔥 {t('dashboard.trendingTech')}</h3>
+                      <span className="trend-category">{t('dashboard.development')}</span>
                     </div>
                     <div className="trend-stats">
                       <div className={`trend-growth ${trendingTech.length > 0 ? 'positive' : ''}`}>
@@ -1498,7 +1845,7 @@ function Dashboard() {
                   
                   <div style={{ marginTop: '20px' }}>
                     {trendingTech.length === 0 ? (
-                      <p style={{ color: '#94a3b8', textAlign: 'center' }}>Carregando tendências...</p>
+                      <p style={{ color: '#94a3b8', textAlign: 'center' }}>{t('dashboard.loadingTrends')}</p>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                         {trendingTech.slice(0, 3).map((tech, index) => (
@@ -1541,11 +1888,11 @@ function Dashboard() {
                                   padding: '2px 8px',
                                   borderRadius: '10px'
                                 }}>
-                                  {tech.count || '0'} cápsulas
+                                  {tech.count || '0'} {t('dashboard.capsules')}
                                 </span>
                               </div>
                               <div style={{ fontSize: '12px', color: '#94a3b8' }}>
-                                {tech.description || 'Tecnologia popular na comunidade'}
+                                {tech.description || t('dashboard.popularTech')}
                               </div>
                             </div>
                           </div>
@@ -1557,15 +1904,15 @@ function Dashboard() {
                   <div className="trend-metrics">
                     <div className="metric">
                       <span className="metric-value">{trendingTech.length}</span>
-                      <span className="metric-label">Tecnologias</span>
+                      <span className="metric-label">{t('dashboard.technologies')}</span>
                     </div>
                     <div className="metric">
                       <span className="metric-value">{communityStats?.totalPublicCapsules || 0}</span>
-                      <span className="metric-label">Cápsulas</span>
+                      <span className="metric-label">{t('dashboard.capsules')}</span>
                     </div>
                     <div className="metric">
                       <span className="metric-value">{communityStats?.totalUsers || 0}</span>
-                      <span className="metric-label">Usuários</span>
+                      <span className="metric-label">{t('dashboard.users')}</span>
                     </div>
                   </div>
                 </div>
@@ -1573,27 +1920,27 @@ function Dashboard() {
                 <div className="trend-card-modern">
                   <div className="trend-card-header">
                     <div className="trend-title-section">
-                      <h3>🏆 Top da Semana</h3>
-                      <span className="trend-category">Comunidade</span>
+                      <h3>🏆 {t('dashboard.topOfWeek')}</h3>
+                      <span className="trend-category">{t('dashboard.community')}</span>
                     </div>
                     <div className="trend-stats">
                       <div className="trend-growth positive">
-                        🔥 Ativo
+                        🔥 {t('dashboard.active')}
                       </div>
                     </div>
                   </div>
                   
                   <div className="leaderboard-modern" style={{ marginTop: '20px' }}>
                     <div className="leaderboard-header-modern">
-                      <span>Posição</span>
-                      <span>Usuário</span>
-                      <span>Cápsulas</span>
-                      <span>Pontos</span>
+                      <span>{t('dashboard.position')}</span>
+                      <span>{t('dashboard.user')}</span>
+                      <span>{t('dashboard.capsules')}</span>
+                      <span>{t('dashboard.points')}</span>
                     </div>
                     <div className="leaderboard-list-modern">
                       {leaderboard.length === 0 ? (
                         <div style={{ padding: '30px', textAlign: 'center', color: '#94a3b8' }}>
-                          Carregando leaderboard...
+                          {t('dashboard.loadingLeaderboard')}
                         </div>
                       ) : (
                         leaderboard.slice(0, 5).map((user, index) => (
@@ -1609,7 +1956,7 @@ function Dashboard() {
                               </div>
                               <div className="user-info-modern">
                                 <strong>{user.username}</strong>
-                                <span>{user.bio || 'Explorador Temporal'}</span>
+                                <span>{user.bio || t('dashboard.timeExplorer')}</span>
                               </div>
                             </div>
                             <div className="leaderboard-capsules">
@@ -1627,18 +1974,18 @@ function Dashboard() {
               </div>
               
               <div className="leaderboard-section">
-                <h3 className="section-title">🏅 Leaderboard Completo</h3>
+                <h3 className="section-title">🏅 {t('dashboard.fullLeaderboard')}</h3>
                 <div className="leaderboard-modern">
                   <div className="leaderboard-header-modern">
-                    <span>Posição</span>
-                    <span>Usuário</span>
-                    <span>Cápsulas</span>
-                    <span>Pontuação</span>
+                    <span>{t('dashboard.position')}</span>
+                    <span>{t('dashboard.user')}</span>
+                    <span>{t('dashboard.capsules')}</span>
+                    <span>{t('dashboard.score')}</span>
                   </div>
                   <div className="leaderboard-list-modern">
                     {leaderboard.length === 0 ? (
                       <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
-                        Nenhum dado disponível no momento
+                        {t('dashboard.noDataAvailable')}
                       </div>
                     ) : (
                       leaderboard.map((user, index) => (
@@ -1654,7 +2001,7 @@ function Dashboard() {
                             </div>
                             <div className="user-info-modern">
                               <strong>{user.username}</strong>
-                              <span>{user.bio || 'Membro da comunidade'}</span>
+                              <span>{user.bio || t('dashboard.communityMember')}</span>
                             </div>
                           </div>
                           <div className="leaderboard-capsules">
@@ -1675,8 +2022,8 @@ function Dashboard() {
           {/* Notificações */}
           {activeTab === 'notifications' && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="chronicle-card main-card">
-              <h2>Notificações</h2>
-              {notifications.length === 0 && <p>Sem notificações</p>}
+              <h2>{t('dashboard.notifications')}</h2>
+              {notifications.length === 0 && <p>{t('dashboard.noNotifications')}</p>}
               <ul className="notifications-list">
                 {notifications.map(n => (
                   <li key={n.id} className={`notification-item ${n.read ? 'read' : 'unread'}`}>
@@ -1686,7 +2033,7 @@ function Dashboard() {
                       <p>{n.meta?.text || ''}</p>
                     </div>
                     <div className="notif-actions">
-                      {!n.read && <button onClick={async () => { try { await notificationAPI.markRead(n.id); setNotifications(prev => prev.map(p => p.id === n.id ? { ...p, read: true } : p)); } catch (err) {} }}>Marcar lida</button>}
+                      {!n.read && <button onClick={async () => { try { await notificationAPI.markRead(n.id); setNotifications(prev => prev.map(p => p.id === n.id ? { ...p, read: true } : p)); } catch (err) {} }}>{t('dashboard.markAsRead')}</button>}
                     </div>
                   </li>
                 ))}
@@ -1704,80 +2051,6 @@ function Dashboard() {
               }}
               newCapsuleId={newCapsuleId}
             />
-          )}
-
-          {/* Trending */}
-          {activeTab === 'trending' && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="chronicle-card main-card">
-              <div className="card-header">
-                <h2>🔥 Em Tendência</h2>
-                <div className="card-actions">
-                  <button onClick={() => loadTrending()} className="btn-secondary">🔄 Atualizar</button>
-                </div>
-              </div>
-
-              <div style={{ padding: 12 }}>
-                {trendingLoading ? (
-                  <div style={{ color: '#94a3b8' }}>Carregando trending...</div>
-                ) : trendingCapsules.length === 0 ? (
-                  <div style={{ color: '#94a3b8' }}>Nenhuma cápsula trending pública/desbloqueada encontrada no momento.</div>
-                ) : (
-                  <div>
-                    <div className="trending-list" style={{ marginBottom: 16 }}>
-                      {trendingCapsules.map(c => (
-                        <motion.div key={c.id} className="trending-card" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
-                          <div className="trending-title">{c.title}</div>
-                          <div className="trending-meta">{c.creator?.username || c.User?.username || c.metadata?.author || '—'} · {c.viewCount || 0} views</div>
-                          <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
-                            <button className="chronicle-button" onClick={() => { communityAPI.vote(c.id); /* optimistic UI not necessary here */ }}>▲ Votar</button>
-                            <span style={{ fontSize: 14, color: '#666' }}>{c.votes || 0} votos</span>
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-
-                    <div className="trending-techs" style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
-                      <div style={{ flex: 1 }}>
-                        <h4 style={{ margin: '0 0 8px 0' }}>🔥 Tecnologias em Alta</h4>
-                        {trendingTechs.length === 0 ? (
-                          <div style={{ color: '#94a3b8' }}>Carregando tendências...</div>
-                        ) : (
-                          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                            {trendingTechs.map(t => (
-                              <span key={t.id} className="tag" style={{ background: 'rgba(255,255,255,0.03)' }}>{t.name} ({t.mentions})</span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      <div style={{ width: 320 }}>
-                        <h4 style={{ margin: '0 0 8px 0' }}>🏆 Top da Semana</h4>
-                        {leaderboardLoading ? (
-                          <div style={{ color: '#94a3b8' }}>Carregando leaderboard...</div>
-                        ) : leaderboardData.length === 0 ? (
-                          <div style={{ color: '#94a3b8' }}>Nenhum dado disponível no momento.</div>
-                        ) : (
-                          <div style={{ display: 'grid', gap: 8 }}>
-                            {leaderboardData.map((entry, idx) => (
-                              <div key={entry.creatorId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                  <div style={{ width: 36, height: 36, borderRadius: 8, background: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{idx + 1}</div>
-                                  <div>
-                                    <div style={{ fontWeight: 700 }}>{entry.user?.username || entry.user?.email || '—'}</div>
-                                    <div style={{ fontSize: 12, color: '#94a3b8' }}>{entry.totalCapsules ?? entry.totalLikes ?? 0} cápsulas</div>
-                                  </div>
-                                </div>
-                                <div style={{ fontWeight: 700 }}>{entry.totalCapsules ?? entry.totalLikes ?? 0}</div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </motion.div>
           )}
 
           {/* Achievements */}
@@ -1821,10 +2094,10 @@ function Dashboard() {
               
               <div className="modal-content">
                 <div className="warning-icon">⚠️</div>
-                <h2>Excluir Cápsula</h2>
+                <h2>{t('dashboard.deleteCapsule')}</h2>
                 <p>
-                  Tem certeza que deseja excluir a cápsula <strong>"{capsuleToDelete.title}"</strong>? 
-                  Esta ação não pode ser desfeita.
+                  {t('dashboard.deleteConfirmation')} <strong>"{capsuleToDelete.title}"</strong>? 
+                  {t('dashboard.actionCannotUndone')}
                 </p>
                 
                 <div className="modal-actions">
@@ -1832,14 +2105,14 @@ function Dashboard() {
                     onClick={() => setShowDeleteConfirm(false)}
                     className="btn-secondary"
                   >
-                    Cancelar
+                    {t('common.cancel')}
                   </button>
                   <button
                     onClick={() => handleDelete(capsuleToDelete.id)}
                     className="btn-danger"
                     disabled={loading}
                   >
-                    {loading ? 'Excluindo...' : 'Excluir Cápsula'}
+                    {loading ? t('common.deleting') : t('common.delete')}
                   </button>
                 </div>
               </div>
@@ -1885,8 +2158,8 @@ function Dashboard() {
                   <div>
                     <h2>{selectedCapsule.title}</h2>
                     <p className="detail-meta">
-                      Por {selectedCapsule.metadata?.author} • 
-                      Criada {formatTimeAgo(selectedCapsule.createdAt)}
+                      {t('dashboard.by')} {selectedCapsule.metadata?.author} • 
+                      {t('dashboard.created')} {formatTimeAgo(selectedCapsule.createdAt)}
                     </p>
                   </div>
                 </div>
@@ -1911,17 +2184,17 @@ function Dashboard() {
                 
                 <div className="detail-stats">
                   <div className="stat">
-                    <span>Desbloqueia:</span>
+                    <span>{t('dashboard.unlocks')}:</span>
                     <strong>{new Date(selectedCapsule.unlockDate).toLocaleDateString()}</strong>
                   </div>
                   <div className="stat">
-                    <span>Visualizações:</span>
+                    <span>{t('dashboard.views')}:</span>
                     <strong>{selectedCapsule.viewCount}</strong>
                   </div>
                   <div className="stat">
-                    <span>Status:</span>
+                    <span>{t('common.status')}:</span>
                     <strong className={(selectedCapsule.isUnlocked || new Date(selectedCapsule.unlockDate) <= currentTime) ? 'unlocked' : 'locked'}>
-                      {(selectedCapsule.isUnlocked || new Date(selectedCapsule.unlockDate) <= currentTime) ? '🔓 Desbloqueada' : '🔒 Bloqueada'}
+                      {(selectedCapsule.isUnlocked || new Date(selectedCapsule.unlockDate) <= currentTime) ? t('dashboard.unlocked') : t('dashboard.locked')}
                     </strong>
                   </div>
                 </div>
@@ -1931,14 +2204,14 @@ function Dashboard() {
                     onClick={() => toggleLike(selectedCapsule.id)}
                     className="btn-secondary"
                   >
-                    ❤️ Curtir ({selectedCapsule.likes || 0})
+                    ❤️ {t('common.like')} ({selectedCapsule.likes || 0})
                   </button>
                   {capsuleScope === 'mine' && (
                     <button
                       onClick={() => confirmDelete(selectedCapsule.id, selectedCapsule.title)}
                       className="btn-danger"
                     >
-                      Excluir
+                      {t('common.delete')}
                     </button>
                   )}
                 </div>
