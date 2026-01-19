@@ -1,0 +1,5 @@
+.notif-center{ background:rgba(255,255,255,0.02); padding:12px; border-radius:8px }
+.notif-center ul{ list-style:none; padding:0; margin:0 }
+.notif-center li{ padding:10px; border-bottom:1px solid rgba(255,255,255,0.03); display:flex; justify-content:space-between }
+.notif-center li.read{ opacity:0.6 }
+.notif-actions button{ background:transparent; border:1px solid rgba(255,255,255,0.04); padding:6px 8px; border-radius:6px; cursor:pointer }

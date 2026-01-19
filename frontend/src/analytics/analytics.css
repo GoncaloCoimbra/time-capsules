@@ -1,0 +1,4 @@
+.analytics-inner{ max-width:1100px; margin:0 auto }
+.analytics-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px }
+.card{ padding:12px; background:rgba(255,255,255,0.02); border-radius:8px }
+@media (max-width:900px){ .analytics-grid{ grid-template-columns:1fr } }

@@ -47,7 +47,7 @@ function ForgotPassword() {
     
     // Basic email validation
     if (!email || !email.includes('@')) {
-      toast.error('Por favor, insira um e-mail válido');
+      toast.error('Por favor, insere um email válido');
       return;
     }
 
@@ -67,7 +67,7 @@ function ForgotPassword() {
         <div>
           <strong>E-mail enviado com sucesso!</strong>
           <div style={{ fontSize: '14px', marginTop: '5px' }}>
-            Verifique a sua caixa de entrada e o spam.
+            Verifica a tua caixa de entrada e a pasta de spam.
             <br />
             O link expira em 1 hora.
           </div>
@@ -85,8 +85,8 @@ function ForgotPassword() {
     } catch (err) {
       // Mostrar erros específicos se disponíveis
       const errorMessage = err.response?.data?.message || 
-                          err.response?.data?.error || 
-                          'Erro ao processar o pedido. Tente novamente mais tarde.';
+              err.response?.data?.error || 
+              'Erro ao processar o pedido. Tenta novamente mais tarde.';
       
       toast.error(errorMessage);
       
@@ -106,7 +106,7 @@ function ForgotPassword() {
 
   const handleResend = async () => {
     if (countdown > 0) {
-      toast.error(`Aguarde ${countdown} segundos para reenviar`);
+      toast.error(`Aguarda ${countdown} segundos para reenviar`);
       return;
     }
     
@@ -301,7 +301,7 @@ function ForgotPassword() {
             
             <div className="header-text">
               <h1 className="chronicle-title">E-mail Enviado!</h1>
-              <p className="chronicle-subtitle">Verifique a sua caixa de entrada</p>
+              <p className="chronicle-subtitle">Verifica a tua caixa de entrada</p>
             </div>
           </div>
           
@@ -317,10 +317,10 @@ function ForgotPassword() {
             <div className="instructions">
               <h3>Instruções:</h3>
               <ul>
-                <li>Verifique a sua caixa de entrada e pasta de spam</li>
-                <li>Clique no link para redefinir a sua palavra-passe</li>
+                <li>Verifica a tua caixa de entrada e a pasta de spam</li>
+                <li>Clica no link para redefinir a tua palavra-passe</li>
                 <li>O link é válido por <strong>1 hora</strong></li>
-                <li>Não partilhe este link com ninguém</li>
+                <li>Não partilhes este link com ninguém</li>
               </ul>
             </div>
           </div>
@@ -632,7 +632,7 @@ function ForgotPassword() {
           
           <div className="header-text">
             <h1 className="chronicle-title">Recuperar Tempo</h1>
-            <p className="chronicle-subtitle">Redefina a sua palavra-passe e recupere o acesso</p>
+            <p className="chronicle-subtitle">Redefine a tua palavra-passe e recupera o acesso</p>
           </div>
         </div>
         
@@ -645,7 +645,7 @@ function ForgotPassword() {
               <input
                 type="email"
                 className="chronicle-input"
-                placeholder="seu@email.com"
+                placeholder="o teu@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -675,8 +675,8 @@ function ForgotPassword() {
           </svg>
           <div>
             <strong>Como funciona:</strong>
-            <p style={{ margin: '5px 0 0 0', fontSize: '13px' }}>
-              Enviaremos um link seguro para o seu e-mail com instruções para redefinir a sua palavra-passe.
+              <p style={{ margin: '5px 0 0 0', fontSize: '13px' }}>
+              Enviaremos um link seguro para o teu e-mail com instruções para redefinir a tua palavra-passe.
             </p>
           </div>
         </div>

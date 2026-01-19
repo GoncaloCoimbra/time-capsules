@@ -1,0 +1,10 @@
+export { default as Hero } from './Hero';
+export { default as Demo } from './Demo';
+export { default as Capsule3D } from './Capsule3D';
+export { default as FeatureGrid } from './FeatureGrid';
+export { default as FeatureCard } from './FeatureCard';
+export { default as ParticleCanvas } from './ParticleCanvas';
+export { default as SocialProofCarousel } from './SocialProofCarousel';
+export { default as HowItWorks } from './HowItWorks';
+export { default as FinalCTA } from './FinalCTA';
+export { default as Footer } from './Footer';

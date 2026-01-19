@@ -7,7 +7,7 @@ function ShareModal({ capsule, onClose, onShare }) {
   const [showCopiedMsg, setShowCopiedMsg] = useState(false);
   const [shareLink, setShareLink] = useState('');
 
-  // Gerar link de compartilhamento único
+  // Gerar link de partilha único
   const generateShareLink = () => {
     const baseUrl = window.location.origin;
     const shareId = btoa(`${capsule.id}-${Date.now()}`);
@@ -61,7 +61,7 @@ function ShareModal({ capsule, onClose, onShare }) {
         </button>
 
         <div className="share-header">
-          <h2>🔗 Compartilhar Cápsula</h2>
+          <h2>🔗 Partilhar Cápsula</h2>
           <p className="share-subtitle">{capsule.title}</p>
         </div>
 
@@ -96,7 +96,7 @@ function ShareModal({ capsule, onClose, onShare }) {
               className="share-section"
             >
               <div className="share-info">
-                <p>Crie um link único para compartilhar esta cápsula:</p>
+                  <p>Cria um link único para partilhar esta cápsula:</p>
               </div>
 
               <div className="link-generator">
@@ -105,7 +105,7 @@ function ShareModal({ capsule, onClose, onShare }) {
                     className="btn-primary"
                     onClick={handleGenerateLink}
                   >
-                    Gerar Link de Compartilhamento
+                      Gerar link de partilha
                   </button>
                 ) : (
                   <>
@@ -127,7 +127,7 @@ function ShareModal({ capsule, onClose, onShare }) {
                     <div className="link-options">
                       <label className="option-label">
                         <input type="checkbox" defaultChecked />
-                        <span>Permitir visualização anônima</span>
+                          <span>Permitir visualização anónima</span>
                       </label>
                       <label className="option-label">
                         <input type="checkbox" defaultChecked />
@@ -152,7 +152,7 @@ function ShareModal({ capsule, onClose, onShare }) {
               className="share-section"
             >
               <div className="share-info">
-                <p>Compartilhe com seus amigos em redes sociais:</p>
+                  <p>Partilha com os teus amigos nas redes sociais:</p>
               </div>
 
               <div className="social-buttons">
@@ -215,7 +215,7 @@ function ShareModal({ capsule, onClose, onShare }) {
               className="share-section"
             >
               <div className="share-info">
-                <p>Envie a cápsula por email para seus contatos:</p>
+                  <p>Envia a cápsula por email para os teus contactos:</p>
               </div>
 
               <form className="email-form" onSubmit={(e) => e.preventDefault()}>
@@ -239,7 +239,7 @@ function ShareModal({ capsule, onClose, onShare }) {
 
         <div className="share-footer">
           <p className="privacy-note">
-             Apenas você pode gerenciar quem vê esta cápsula
+               Apenas tu podes gerir quem vê esta cápsula
           </p>
         </div>
       </motion.div>

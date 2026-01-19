@@ -9,12 +9,12 @@ function Achievements({ capsules = [], statistics = null }) {
   const [achievements, setAchievements] = useState([]);
   const [unlockedCount, setUnlockedCount] = useState(0);
 
-  // Definição de todos os achievements
+  // Definição de todas as conquistas
   const allAchievements = [
     {
       id: 1,
       name: 'Primeiro Passo',
-      description: 'Crie sua primeira cápsula temporal',
+      description: 'Cria a tua primeira cápsula temporal',
       icon: '🚀',
       condition: () => capsules.length >= 1,
       difficulty: 'easy',
@@ -23,7 +23,7 @@ function Achievements({ capsules = [], statistics = null }) {
     {
       id: 2,
       name: 'Colecionador',
-      description: 'Crie 5 cápsulas temporais',
+      description: 'Cria 5 cápsulas temporais',
       icon: '🎁',
       condition: () => capsules.length >= 5,
       difficulty: 'medium',
@@ -32,7 +32,7 @@ function Achievements({ capsules = [], statistics = null }) {
     {
       id: 3,
       name: 'Mestre Temporal',
-      description: 'Crie 20 cápsulas temporais',
+      description: 'Cria 20 cápsulas temporais',
       icon: '👑',
       condition: () => capsules.length >= 20,
       difficulty: 'hard',
@@ -41,7 +41,7 @@ function Achievements({ capsules = [], statistics = null }) {
     {
       id: 4,
       name: 'Explorador',
-      description: 'Crie cápsulas em 3 categorias diferentes',
+      description: 'Cria cápsulas em 3 categorias diferentes',
       icon: '🗺️',
       condition: () => {
         const categories = new Set(capsules.map(c => c.categoryId));
@@ -53,7 +53,7 @@ function Achievements({ capsules = [], statistics = null }) {
     {
       id: 5,
       name: 'Desbloqueador',
-      description: 'Tenha 5 cápsulas desbloqueadas',
+      description: 'Tem 5 cápsulas desbloqueadas',
       icon: '',
       condition: () => {
         const unlocked = capsules.filter(c => c.isUnlocked);
@@ -65,7 +65,7 @@ function Achievements({ capsules = [], statistics = null }) {
     {
       id: 6,
       name: 'Paciência é Virtude',
-      description: 'Tenha uma cápsula aguardando desbloqueio há mais de 30 dias',
+      description: 'Tem uma cápsula à espera de desbloqueio há mais de 30 dias',
       icon: '⏳',
       condition: () => {
         const now = new Date();
@@ -79,8 +79,8 @@ function Achievements({ capsules = [], statistics = null }) {
     },
     {
       id: 7,
-      name: 'Taggeiro',
-      description: 'Use 5 tags diferentes em suas cápsulas',
+      name: 'Tagueador',
+      description: 'Usa 5 etiquetas diferentes nas tuas cápsulas',
       icon: '',
       condition: () => {
         const tags = new Set();
@@ -97,7 +97,7 @@ function Achievements({ capsules = [], statistics = null }) {
     {
       id: 8,
       name: 'Celebridade',
-      description: 'Tenha uma cápsula com 50 visualizações',
+      description: 'Tem uma cápsula com 50 visualizações',
       icon: '⭐',
       condition: () => capsules.some(c => c.viewCount >= 50),
       difficulty: 'hard',
@@ -106,7 +106,7 @@ function Achievements({ capsules = [], statistics = null }) {
     {
       id: 9,
       name: 'Socialite',
-      description: 'Compartilhe uma cápsula com alguém',
+      description: 'Partilha uma cápsula com alguém',
       icon: '🤝',
       condition: () => capsules.some(c => !c.isPrivate),
       difficulty: 'easy',
@@ -115,7 +115,7 @@ function Achievements({ capsules = [], statistics = null }) {
     {
       id: 10,
       name: 'Favorito das Massas',
-      description: 'Tenha 3 cápsulas marcadas como favorito',
+      description: 'Tem 3 cápsulas marcadas como favoritas',
       icon: '',
       condition: () => capsules.filter(c => c.isFavorite).length >= 3,
       difficulty: 'medium',
@@ -124,7 +124,7 @@ function Achievements({ capsules = [], statistics = null }) {
   ];
 
   useEffect(() => {
-    // Calcular achievements desbloqueados
+    // Calcular conquistas desbloqueadas
     const unlocked = allAchievements.filter(ach => ach.condition());
     setAchievements(allAchievements);
     setUnlockedCount(unlocked.length);
@@ -138,7 +138,7 @@ function Achievements({ capsules = [], statistics = null }) {
     const unlocked = allAchievements.filter(ach => ach.condition()).length;
     if (unlocked > prevRef.current) {
       const diff = unlocked - prevRef.current;
-      toast.success(`+${diff} achievement(s) desbloqueado(s)! 🎉`);
+      toast.success(`+${diff} conquista(s) desbloqueada(s)! 🎉`);
       setShowConfetti(true);
       setTimeout(() => setShowConfetti(false), 3500);
     }
@@ -186,7 +186,7 @@ function Achievements({ capsules = [], statistics = null }) {
     <div className="achievements-container">
       {showConfetti && <Confetti recycle={false} numberOfPieces={200} />}
       <div className="achievements-header">
-        <h2>🏆 Achievements & Badges</h2>
+        <h2>🏆 Conquistas & Emblemas</h2>
         <div className="achievements-summary">
           <div className="summary-stat">
             <span className="summary-icon">🎯</span>
@@ -222,7 +222,7 @@ function Achievements({ capsules = [], statistics = null }) {
           />
         </div>
         <span className="progress-text">
-          {unlockedCount} de {achievements.length} achievements desbloqueados
+          {unlockedCount} de {achievements.length} conquistas desbloqueadas
         </span>
       </div>
 
@@ -279,14 +279,14 @@ function Achievements({ capsules = [], statistics = null }) {
       </div>
 
       <div className="achievements-tips">
-        <h3>💡 Dicas para Desbloquear Mais Achievements</h3>
+        <h3>💡 Dicas para Desbloquear Mais Conquistas</h3>
         <ul>
-          <li>Crie mais cápsulas em diferentes categorias</li>
-          <li> Use diferentes tags para organizar suas cápsulas</li>
-          <li> Compartilhe suas cápsulas com a comunidade</li>
-          <li> Marque cápsulas favoritas que você ama</li>
-          <li> Aguarde o desbloqueio de cápsulas antigas</li>
-          <li> Crie cápsulas públicas para ganhar visualizações</li>
+          <li>Cria mais cápsulas em categorias diferentes</li>
+          <li>Usa etiquetas diferentes para organizar as tuas cápsulas</li>
+          <li>Partilha as tuas cápsulas com a comunidade</li>
+          <li>Marca cápsulas favoritas de que gostas</li>
+          <li>Aguarda o desbloqueio de cápsulas antigas</li>
+          <li>Cria cápsulas públicas para ganhar visualizações</li>
         </ul>
       </div>
     </div>

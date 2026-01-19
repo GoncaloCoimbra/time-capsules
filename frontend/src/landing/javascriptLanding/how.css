@@ -1,0 +1,8 @@
+.jl-how{ padding:48px 20px; background: linear-gradient(180deg,#071422,#081827); color:#fff }
+.jl-how-inner{ max-width:1000px; margin:0 auto }
+.jl-timeline{ display:flex; gap:18px; justify-content:space-between; margin-top:18px }
+.jl-step{ background:rgba(255,255,255,0.02); padding:16px; border-radius:12px; flex:1; min-width:160px; border:1px solid rgba(255,255,255,0.03) }
+.jl-step-index{ width:36px; height:36px; border-radius:50%; background:#e2b714; color:#081021; display:flex; align-items:center; justify-content:center; font-weight:700; margin-bottom:8px }
+.jl-step-body h4{ margin:0 0 6px 0 }
+.jl-step-body p{ margin:0; color:rgba(255,255,255,0.8); font-size:14px }
+@media (max-width:900px){ .jl-timeline{ flex-direction:column } }

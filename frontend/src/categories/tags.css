@@ -1,0 +1,6 @@
+.cat-icons{ display:flex; gap:8px; flex-wrap:wrap }
+.cat-icon{ padding:8px; border-radius:8px; background:transparent; border:1px solid rgba(255,255,255,0.04); cursor:pointer }
+.cat-icon.sel{ background:rgba(226,183,20,0.12); border-color:rgba(226,183,20,0.2) }
+.tags-chips{ display:flex; gap:8px; flex-wrap:wrap }
+.tag-chip{ background:rgba(255,255,255,0.03); padding:6px 8px; border-radius:12px }
+.tag-remove{ margin-left:6px; background:transparent; border:none; cursor:pointer }

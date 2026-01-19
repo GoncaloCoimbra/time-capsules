@@ -270,7 +270,7 @@ function DiscoverCommunity() {
       ) : (
         <div className="empty-state">
           <p>🔍 Nenhum explorador encontrado</p>
-          <p className="empty-subtext">Tente ajustar sua busca</p>
+          <p className="empty-subtext">Tenta ajustar a tua pesquisa</p>
         </div>
       )}
     </div>

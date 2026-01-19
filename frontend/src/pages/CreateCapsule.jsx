@@ -83,7 +83,7 @@ export default function CreateCapsule() {
   return (
     <div className="create-capsule-page">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="chronicle-card main-card">
-        <div className="card-header">
+          <div className="card-header">
           <h2>✨ Criar Cápsula Épica</h2>
           <div className="card-actions">
             <button onClick={() => navigate('/dashboard')} className="btn-secondary">Cancelar</button>
@@ -103,7 +103,7 @@ export default function CreateCapsule() {
             </div>
 
             <div className="form-group full-width">
-              <label>Mensagem ao eu do futuro</label>
+              <label>Mensagem para o eu do futuro</label>
               <textarea value={content} onChange={(e) => setContent(e.target.value)} rows={4} className="chronicle-input" />
             </div>
 
@@ -121,7 +121,7 @@ export default function CreateCapsule() {
                       <option value="json">JSON</option>
                       <option value="text">Plain Text</option>
                     </select>
-                    <div style={{ color: '#94a3b8', fontSize: 12 }}>Language</div>
+                    <div style={{ color: '#94a3b8', fontSize: 12 }}>Linguagem</div>
                   </div>
                   <textarea value={codeSnippet} onChange={(e) => setCodeSnippet(e.target.value)} rows={8} className="chronicle-input" style={{ width: '100%' }} />
                 </div>
@@ -159,8 +159,8 @@ export default function CreateCapsule() {
             </div>
           </div>
 
-          <div className="form-actions" style={{ marginTop: 18 }}>
-            <button type="submit" className="chronicle-button" disabled={sealing || !unlockDate || !title}>Preview & Selar</button>
+            <div className="form-actions" style={{ marginTop: 18 }}>
+            <button type="submit" className="chronicle-button" disabled={sealing || !unlockDate || !title}>Pré-visualizar e Selar</button>
             <button type="button" onClick={() => navigate('/dashboard')} className="btn-secondary">Voltar</button>
           </div>
         </form>
@@ -169,8 +169,8 @@ export default function CreateCapsule() {
       {showSealModal && (
         <div className="modal-overlay">
           <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="modal-card">
-            <h3>Pré-visualização & Selar</h3>
-            <p style={{ color: '#94a3b8' }}>Confirme os dados e selaremos a cápsula. A animação terminará em 5s.</p>
+            <h3>Pré-visualização e Selar</h3>
+            <p style={{ color: '#94a3b8' }}>Confirma os dados e selaremos a cápsula. A animação terminará em 5s.</p>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 200px', gap: 12 }}>
               <div>

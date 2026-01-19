@@ -1,0 +1,13 @@
+.jl-social{ padding:48px 20px; background: linear-gradient(180deg,#06101a,#071520); color:#fff }
+.jl-social-inner{ max-width:900px; margin:0 auto; text-align:center }
+.jl-social-title{ margin:0 0 18px 0; font-size:20px; font-weight:700 }
+.jl-carousel{ position:relative; min-height:120px; display:flex; align-items:center; justify-content:center }
+.jl-testimonial{ position:absolute; opacity:0; transform: translateY(12px) scale(.98); transition: all .45s cubic-bezier(.2,.9,.3,1); width:80%; max-width:700px; padding:18px; border-radius:10px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.03) }
+.jl-testimonial.active{ opacity:1; transform:translateY(0) scale(1) }
+.jl-test-text{ font-size:16px; color: #e6eef8; margin:0 0 10px }
+.jl-test-author{ color: #94a3b8; font-size:13px }
+.jl-carousel-controls{ margin-top:14px; display:flex; gap:8px; align-items:center; justify-content:center }
+.jl-carousel-controls button{ background:transparent; border:1px solid rgba(255,255,255,0.06); color:#fff; padding:6px 10px; border-radius:6px; cursor:pointer }
+.jl-carousel-controls .dot{ width:10px; height:10px; border-radius:50%; padding:0; border: none; background: rgba(255,255,255,0.08) }
+.jl-carousel-controls .dot.on{ background: #e2b714 }
+@media (max-width:700px){ .jl-testimonial{ width:95% } }

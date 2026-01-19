@@ -83,7 +83,7 @@ function Login() {
       await login(email, password);
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.message || 'Credenciais inválidas. Por favor, tente novamente.');
+      setError(err.response?.data?.message || 'Credenciais inválidas. Por favor, tenta novamente.');
     } finally {
       setLoading(false);
     }
@@ -216,7 +216,7 @@ function Login() {
           
           <div className="header-text">
             <h1 className="chronicle-title">Time Chronicle</h1>
-            <p className="chronicle-subtitle">Aceder às suas memórias temporais</p>
+            <p className="chronicle-subtitle">Aceder às tuas memórias temporais</p>
           </div>
         </div>
         
@@ -239,7 +239,7 @@ function Login() {
               <input
                 type="email"
                 className="chronicle-input"
-                placeholder="seu@email.com"
+                placeholder="o teu@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -252,7 +252,7 @@ function Login() {
               <input
                 type={showPassword ? 'text' : 'password'}
                 className="chronicle-input"
-                placeholder="A sua palavra-passe"
+                placeholder="A tua palavra-passe"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -357,10 +357,10 @@ function Login() {
         </div>
         
         <div className="chronicle-footer">
-          <p className="footer-text">
+            <p className="footer-text">
             Novo no Time Chronicle?{' '}
             <Link to="/register" className="footer-link">
-              Crie a sua conta
+              Cria a tua conta
             </Link>
           </p>
           

@@ -106,7 +106,7 @@ function Register() {
 
     // Validações
     if (!username || !email || !password || !confirmPassword) {
-      setError('Preencha todos os campos');
+      setError('Por favor, preenche todos os campos');
       return;
     }
 
@@ -116,7 +116,7 @@ function Register() {
     }
 
     if (passwordStrength < 3) {
-      setError('Por favor, use uma palavra-passe mais forte');
+      setError('Por favor, usa uma palavra-passe mais forte');
       return;
     }
 
@@ -130,7 +130,7 @@ function Register() {
       navigate('/dashboard');
     } catch (err) {
       // Trata erros da API
-      setError(err.response?.data?.message || 'Erro ao criar conta. Tente novamente.');
+      setError(err.response?.data?.message || 'Erro ao criar conta. Tenta novamente.');
     } finally {
       setLoading(false);
     }
@@ -263,7 +263,7 @@ function Register() {
           
           <div className="header-text">
             <h1 className="chronicle-title">Time Chronicle</h1>
-            <p className="chronicle-subtitle">Crie a sua cápsula do tempo</p>
+            <p className="chronicle-subtitle">Cria a tua cápsula do tempo</p>
           </div>
         </div>
         
@@ -296,7 +296,7 @@ function Register() {
               <input
                 type="email"
                 className="chronicle-input"
-                placeholder="seu@email.com"
+                placeholder="o teu@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -309,7 +309,7 @@ function Register() {
               <input
                 type={showPassword ? 'text' : 'password'}
                 className="chronicle-input"
-                placeholder="Crie uma palavra-passe"
+                placeholder="Cria uma palavra-passe"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -394,7 +394,7 @@ function Register() {
               <input
                 type={showConfirmPassword ? 'text' : 'password'}
                 className="chronicle-input"
-                placeholder="Confirme a sua palavra-passe"
+                placeholder="Confirma a tua palavra-passe"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
@@ -466,7 +466,7 @@ function Register() {
           <p className="footer-text">
             Já tem uma cápsula?{' '}
             <Link to="/login" className="footer-link">
-                Aceder às suas memórias temporais
+                Aceder às tuas memórias temporais
             </Link>
           </p>
           

@@ -1,0 +1,350 @@
+
+
+.reaction-picker-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 10;
+}
+
+/* Reações ativas (com contador) */
+.active-reactions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.reaction-bubble {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: rgba(30, 41, 59, 0.8);
+  border: 2px solid transparent;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  backdrop-filter: blur(10px);
+}
+
+.reaction-bubble:hover {
+  background: rgba(30, 41, 59, 1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.reaction-bubble.user-reacted {
+  background: rgba(226, 183, 20, 0.15);
+  border-color: currentColor;
+}
+
+.reaction-bubble.user-reacted:hover {
+  background: rgba(226, 183, 20, 0.25);
+}
+
+.reaction-emoji {
+  font-size: 18px;
+  line-height: 1;
+  animation: emojiPop 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes emojiPop {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.reaction-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: #f1f5f9;
+  min-width: 12px;
+  text-align: center;
+}
+
+/* Tooltip ao passar o mouse */
+.reaction-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, 0.95);
+  color: #f1f5f9;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.reaction-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: rgba(15, 23, 42, 0.95);
+}
+
+/* Botão de adicionar reação */
+.add-reaction-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: rgba(30, 41, 59, 0.6);
+  border: 2px dashed rgba(148, 163, 184, 0.3);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+}
+
+.add-reaction-btn:hover {
+  background: rgba(30, 41, 59, 1);
+  border-color: #e2b714;
+  transform: rotate(90deg) scale(1.1);
+}
+
+.add-icon {
+  font-size: 16px;
+  transition: transform 0.2s ease;
+}
+
+/* ========================================
+   PICKER FLUTUANTE (Popup)
+   ======================================== */
+
+.reaction-picker-popup {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.98));
+  border: 1px solid rgba(226, 183, 20, 0.2);
+  border-radius: 16px;
+  padding: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(20px);
+  z-index: 1000;
+  min-width: 280px;
+}
+
+.picker-header {
+  padding: 4px 8px 8px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.picker-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.picker-emoji-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 12px 8px;
+  background: rgba(30, 41, 59, 0.5);
+  border: 2px solid transparent;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.picker-emoji-btn:hover {
+  background: rgba(30, 41, 59, 0.8);
+  border-color: rgba(226, 183, 20, 0.3);
+  transform: translateY(-2px);
+}
+
+.picker-emoji-btn.active {
+  background: rgba(226, 183, 20, 0.15);
+  border-color: currentColor;
+}
+
+.picker-emoji-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.picker-emoji {
+  font-size: 24px;
+  line-height: 1;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.picker-count {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #e2b714;
+  background: rgba(15, 23, 42, 0.9);
+  padding: 2px 6px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+}
+
+.picker-label {
+  font-size: 10px;
+  color: #94a3b8;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ========================================
+   VARIANTES
+   ======================================== */
+
+/* Compact - para comentários ou espaços pequenos */
+.reaction-picker-container.compact .reaction-bubble {
+  padding: 2px 8px;
+  font-size: 14px;
+}
+
+.reaction-picker-container.compact .reaction-emoji {
+  font-size: 16px;
+}
+
+.reaction-picker-container.compact .reaction-count {
+  font-size: 11px;
+}
+
+.reaction-picker-container.compact .add-reaction-btn {
+  width: 28px;
+  height: 28px;
+}
+
+/* Inline - para dentro de texto */
+.reaction-picker-container.inline {
+  display: inline-flex;
+  vertical-align: middle;
+  margin: 0 4px;
+}
+
+.reaction-picker-container.inline .reaction-bubble {
+  padding: 2px 6px;
+}
+
+/* Badge de total (compact) */
+.total-reactions-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #e2b714;
+  color: #0f172a;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(226, 183, 20, 0.4);
+  z-index: 10;
+}
+
+/* ========================================
+   ANIMAÇÕES ADICIONAIS
+   ======================================== */
+
+@keyframes reactionPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+}
+
+.reaction-bubble.user-reacted .reaction-emoji {
+  animation: reactionPulse 0.6s ease-in-out;
+}
+
+/* Efeito de brilho ao adicionar */
+@keyframes reactionGlow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(226, 183, 20, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 20px 10px rgba(226, 183, 20, 0.3);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(226, 183, 20, 0);
+  }
+}
+
+.reaction-bubble.user-reacted {
+  animation: reactionGlow 0.8s ease-out;
+}
+
+/* ========================================
+   RESPONSIVO
+   ======================================== */
+
+@media (max-width: 768px) {
+  .reaction-picker-popup {
+    left: auto;
+    right: 0;
+    min-width: 260px;
+  }
+
+  .picker-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+  }
+
+  .picker-emoji-btn {
+    padding: 10px 6px;
+  }
+
+  .picker-emoji {
+    font-size: 20px;
+  }
+}
+
+/* Dark/Light mode support */
+body.light-mode .reaction-bubble {
+  background: rgba(241, 245, 249, 0.8);
+}
+
+body.light-mode .reaction-bubble:hover {
+  background: rgba(241, 245, 249, 1);
+}
+
+body.light-mode .reaction-picker-popup {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(241, 245, 249, 0.98));
+  border-color: rgba(226, 183, 20, 0.3);
+}
+
+body.light-mode .picker-emoji-btn {
+  background: rgba(241, 245, 249, 0.5);
+}
+
+body.light-mode .picker-emoji-btn:hover {
+  background: rgba(241, 245, 249, 0.8);
+}

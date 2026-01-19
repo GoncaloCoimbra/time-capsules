@@ -47,7 +47,7 @@ function AuthCallback() {
         navigate('/dashboard');
       } catch (error) {
         console.error('Erro no callback OAuth:', error);
-        toast.error('Erro ao completar autenticação. Por favor, tente novamente.');
+        toast.error('Erro ao completar autenticação. Por favor, tenta novamente.');
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         navigate('/login');

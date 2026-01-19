@@ -10,12 +10,13 @@ import {
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { capsuleAPI, categoryAPI, tagAPI, communityAPI, commentAPI, likeAPI, favoriteAPI, notificationAPI } from '../services/capsuleService';
+import NotificationsCenter from '../components/NotificationsCenter';
 import TimelineView from '../components/TimelineView';
 import Achievements from '../components/Achievements';
 import DiscoverCommunity from '../components/DiscoverCommunity';
 import './Dashboard.css';
 
-// ✅ Adicione estes imports
+// ✅ Adiciona estes imports
 import { useTranslation } from 'react-i18next';
 import LanguageSelector from '../components/LanguageSelector';
 
@@ -49,7 +50,7 @@ const UnlockAnimation = ({ capsule, onComplete }) => {
   );
 };
 
-// Componente de Modal de Preview
+// Componente de Modal de Pré-visualização
 const PreviewModal = ({ 
   show, 
   onClose, 
@@ -76,8 +77,8 @@ const PreviewModal = ({
         <button onClick={onClose} className="modal-close">×</button>
         
         <div className="preview-header">
-          <h2>🔍 Preview da Cápsula</h2>
-          <p className="preview-subtitle">Revise os detalhes antes de selar</p>
+          <h2>🔍 Pré-visualização da Cápsula</h2>
+          <p className="preview-subtitle">Revê os detalhes antes de selar</p>
         </div>
         
         <div className="preview-content">
@@ -109,7 +110,7 @@ const PreviewModal = ({
             
             {data.tags && data.tags.length > 0 && (
               <div className="preview-detail">
-                <span>🏷️ Tags:</span>
+                <span>🏷️ Etiquetas:</span>
                 <div className="tags-container">
                   {data.tags.map(tag => (
                     <span key={tag.id} className="tag secondary">
@@ -1061,6 +1062,10 @@ function Dashboard() {
           <div style={{ position: 'relative', zIndex: 10000 }}>
             <LanguageSelector />
           </div>
+
+          <button onClick={() => navigate('/landing')} className="landing-button" title="Landing">
+            Landing
+          </button>
           
           {/* Toggle de Tema com Ícones SVG */}
           <button onClick={toggleTheme} className="theme-toggle" title={t('dashboard.toggleTheme')}>
@@ -2021,24 +2026,7 @@ function Dashboard() {
           
           {/* Notificações */}
           {activeTab === 'notifications' && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="chronicle-card main-card">
-              <h2>{t('dashboard.notifications')}</h2>
-              {notifications.length === 0 && <p>{t('dashboard.noNotifications')}</p>}
-              <ul className="notifications-list">
-                {notifications.map(n => (
-                  <li key={n.id} className={`notification-item ${n.read ? 'read' : 'unread'}`}>
-                    <div className="notif-body">
-                      <strong>{n.type}</strong>
-                      <span className="notif-meta">{n.createdAt ? new Date(n.createdAt).toLocaleString() : ''}</span>
-                      <p>{n.meta?.text || ''}</p>
-                    </div>
-                    <div className="notif-actions">
-                      {!n.read && <button onClick={async () => { try { await notificationAPI.markRead(n.id); setNotifications(prev => prev.map(p => p.id === n.id ? { ...p, read: true } : p)); } catch (err) {} }}>{t('dashboard.markAsRead')}</button>}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </motion.div>
+            <NotificationsCenter initialNotifications={notifications} onUpdate={(list) => setNotifications(list)} />
           )}
           
           {/* Timeline */}

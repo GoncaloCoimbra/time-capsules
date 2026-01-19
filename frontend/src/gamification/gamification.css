@@ -1,0 +1,5 @@
+.xp-bar{ width:240px }
+.xp-track{ background:rgba(255,255,255,0.04); border-radius:8px; height:10px; overflow:hidden }
+.xp-fill{ background:linear-gradient(90deg,#e2b714,#1f7a8c); height:100% }
+.badges{ display:flex; gap:8px }
+.badge{ padding:6px 8px; border-radius:8px; background:rgba(255,255,255,0.02) }

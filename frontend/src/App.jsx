@@ -10,6 +10,9 @@ import RevealCapsule from './pages/RevealCapsule';
 import AuthCallback from './pages/AuthCallback';
 import ForgotPassword from './pages/ForgotPassword';
 import './i18n'; 
+import LandingPage from './landing/LandingPage';
+import Terms from './pages/Terms';
+import Privacy from './pages/Privacy';
 
 
 // Componente para proteger rotas privadas
@@ -31,6 +34,8 @@ function App() {
           <Route path='/register' element={<Register />} />
           <Route path='/forgot' element={<ForgotPassword />} />
           <Route path='/auth/callback' element={<AuthCallback />} />
+          <Route path='/terms' element={<Terms />} />
+          <Route path='/privacy' element={<Privacy />} />
           
           {/* Rotas Privadas (Protegidas) */}
           <Route
@@ -65,6 +70,7 @@ function App() {
           />
 
           {/* Redirecionamento Inicial */}
+          <Route path='/landing' element={<LandingPage />} />
           <Route path='/' element={<Navigate to='/dashboard' />} />
           
           {/* Rota 404 (Opcional) */}

@@ -1,0 +1,8 @@
+.jl-footer{ padding:32px 20px; background:#07101a; color:#fff }
+.jl-footer-inner{ max-width:1000px; margin:0 auto; display:flex; gap:24px; align-items:center; justify-content:space-between }
+.jl-newsletter h4{ margin:0 0 8px 0 }
+.jl-news-form{ display:flex; gap:8px; align-items:center }
+.jl-news-form input{ padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.06); background:transparent; color:#fff }
+.jl-links a{ color:#94a3b8; margin-left:12px }
+.jl-note{ margin-top:8px; color:#8ee; font-size:13px }
+@media (max-width:800px){ .jl-footer-inner{ flex-direction:column; align-items:flex-start } }

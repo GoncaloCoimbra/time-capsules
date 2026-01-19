@@ -1,0 +1,5 @@
+.jl-final{ padding:48px 20px; background:linear-gradient(135deg,#0a1220,#081226); color:#fff; text-align:center }
+.jl-final-inner{ max-width:900px; margin:0 auto }
+.jl-final-inner h2{ margin:0 0 8px 0 }
+.jl-final-inner p{ margin:0 0 16px 0; color:rgba(255,255,255,0.8) }
+.jl-final .jl-cta{ margin:0 8px }

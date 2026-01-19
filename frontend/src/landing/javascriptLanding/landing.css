@@ -1,0 +1,100 @@
+.jl-hero { padding: 80px 20px; background: linear-gradient(135deg,#0b1020 0%, #10203a 100%); color: #fff; text-align:center; }
+.jl-hero-inner { max-width:980px; margin:0 auto; }
+.jl-logo { font-weight:700; font-size:28px; margin-bottom:18px; }
+.jl-logo-glitch { display:inline-block; color:#e2b714; filter:drop-shadow(0 2px 8px rgba(0,0,0,0.6)); }
+.jl-tagline { font-size:28px; margin:8px 0; }
+.jl-sub { margin:12px 0 20px; color:rgba(255,255,255,0.85); }
+.jl-ctas { display:flex; gap:12px; justify-content:center; }
+.jl-cta { padding:10px 18px; border-radius:8px; cursor:pointer; border:0; }
+.jl-cta-primary { background:#e2b714; color:#081021; }
+.jl-cta-secondary { background:transparent; color:#fff; border:1px solid rgba(255,255,255,0.08); }
+
+.jl-demo { padding:48px 20px; background:#0f1724; color:#fff; }
+.jl-demo-inner { max-width:980px; margin:0 auto; display:grid; grid-template-columns:1fr 1fr; gap:18px; align-items:start; }
+.jl-label { font-weight:600; margin-bottom:8px; }
+.jl-editor { min-height:200px; padding:12px; border-radius:8px; background:#0b1220; color:#fff; border:1px solid rgba(255,255,255,0.04); resize:vertical; }
+.jl-preview { background:#071020; border-radius:8px; padding:12px; border:1px solid rgba(255,255,255,0.03); }
+.jl-preview-header { font-weight:600; margin-bottom:8px; }
+.jl-preview-body { min-height:160px; color:rgba(255,255,255,0.9); }
+
+.jl-seal-overlay{ position:absolute; inset:auto 12px 12px 12px; display:flex; flex-direction:column; align-items:center; gap:8px }
+.jl-seal{ background: rgba(226,183,20,0.12); color:#e2b714; padding:8px 14px; border-radius:8px; border:1px solid rgba(226,183,20,0.18); font-weight:700; transform: rotate(-6deg); box-shadow: 0 8px 20px rgba(0,0,0,0.5) }
+.jl-seal-timer{ color:#94a3b8; font-size:13px }
+
+@media (max-width:800px){ .jl-demo-inner{ grid-template-columns:1fr; } .jl-tagline{ font-size:20px; }}
+
+/* Glitch */
+.jl-logo-glitch{ position:relative }
+.jl-logo-glitch::before, .jl-logo-glitch::after{
+	content: attr(data-text);
+	position:absolute; left:0; top:0; width:100%;
+}
+
+.jl-logo-glitch::before{ left:2px; text-shadow:-2px 0 #0ff; clip-path: inset(0 0 45% 0); opacity:0.6; animation: glitch-1 2.6s infinite linear }
+.jl-logo-glitch::after{ left:-2px; text-shadow:2px 0 #f0f; clip-path: inset(55% 0 0 0); opacity:0.6; animation: glitch-2 3.1s infinite linear }
+
+@keyframes glitch-1 {
+	0% { transform: translate(0,0) }
+	20% { transform: translate(-2px, -1px) }
+	40% { transform: translate(1px, 1px) }
+	60% { transform: translate(-1px, 2px) }
+	80% { transform: translate(2px,-2px) }
+	100% { transform: translate(0,0) }
+}
+@keyframes glitch-2 {
+	0% { transform: translate(0,0) }
+	25% { transform: translate(1px, -2px) }
+	50% { transform: translate(-1px, 1px) }
+	75% { transform: translate(2px, 0px) }
+	100% { transform: translate(0,0) }
+}
+
+.jl-scroll-indicator{ margin-top:26px; display:flex; justify-content:center }
+.jl-scroll-indicator .chevrons{ color:rgba(255,255,255,0.9); font-size:20px; animation: jl-scroll 1.6s infinite }
+@keyframes jl-scroll{ 0%{ transform:translateY(0) } 50%{ transform:translateY(8px) } 100%{ transform:translateY(0) } }
+
+.jl-capsule3d{ margin:28px 0 }
+
+/* 3D Capsule - CSS Animation */
+.jl-capsule3d-container {
+  padding: 60px 20px;
+  background: linear-gradient(135deg, #0a0a14 0%, #151528 50%, #1a1a2e 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+}
+
+.jl-capsule3d-wrapper {
+  perspective: 1200px;
+  width: 280px;
+  height: 280px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.jl-sphere {
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #fce8b2, #f4d156, #e2b714, #d4a520, #a67c07);
+  box-shadow: 
+    0 40px 100px rgba(0, 0, 0, 0.9),
+    inset -30px -30px 60px rgba(0, 0, 0, 0.6),
+    inset 20px 20px 40px rgba(255, 255, 255, 0.3);
+  animation: rotateSphere 8s linear infinite;
+}
+
+@keyframes rotateSphere {
+  0% {
+    transform: rotateX(0deg) rotateY(0deg);
+  }
+  100% {
+    transform: rotateX(360deg) rotateY(360deg);
+  }
+}
+
+/* Typewriter cursor */
+.jl-type-cursor{ display:inline-block; margin-left:6px; color:#e2b714; opacity:1; animation: blink 1s steps(2,start) infinite }
+@keyframes blink{ to{ opacity:0 } }
