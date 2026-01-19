@@ -1,6 +1,6 @@
-// backend/models/Like.js
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+// backend/src/models/Like.js
+const { DataTypes, Op } = require('sequelize');
+const sequelize = require('./index'); // CORRIGIDO: usar o mesmo caminho que os outros models
 
 const Like = sequelize.define('Like', {
   id: {
@@ -43,7 +43,7 @@ const Like = sequelize.define('Like', {
       fields: ['userId', 'capsuleId', 'reactionType'],
       name: 'unique_user_capsule_reaction',
       where: {
-        capsuleId: { [DataTypes.Op.ne]: null }
+        capsuleId: { [Op.ne]: null } 
       }
     },
     {
@@ -51,7 +51,7 @@ const Like = sequelize.define('Like', {
       fields: ['userId', 'commentId', 'reactionType'],
       name: 'unique_user_comment_reaction',
       where: {
-        commentId: { [DataTypes.Op.ne]: null }
+        commentId: { [Op.ne]: null } 
       }
     }
   ]

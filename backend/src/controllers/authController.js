@@ -73,7 +73,7 @@ exports.login = async (req, res) => {
   }
 };
 
-// ✅ NOVO: Endpoint para verificar configuração OAuth
+//  Endpoint para verificar configuração OAuth
 exports.getOAuthConfig = async (req, res) => {
   try {
     res.json({

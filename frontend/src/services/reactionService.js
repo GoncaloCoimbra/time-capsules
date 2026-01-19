@@ -1,9 +1,5 @@
 import api from './api';
 
-/**
- * Serviço de Reações (Multi-emoji estilo Discord/Slack)
- * Suporta 8 tipos: like, love, fire, idea, laugh, wow, celebrate, clap
- */
 
 export const reactionAPI = {
   /**
