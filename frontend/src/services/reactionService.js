@@ -40,9 +40,7 @@ export const reactionAPI = {
   getUserCommentReactions: (commentId) => api.get(`/likes/reaction/comment/${commentId}/user`)
 };
 
-/**
- * Configuração de emojis disponíveis
- */
+
 export const REACTION_CONFIG = {
   like: { emoji: '👍', label: 'Like', color: '#3b82f6' },
   love: { emoji: '❤️', label: 'Love', color: '#ef4444' },
