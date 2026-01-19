@@ -12,7 +12,7 @@ Perfect for:
 ## 🌟 Features
 
 ### Core Features
-- ✅ Create and manage time capsules
+-  Create and manage time capsules
 - 🔐 Auto-unlock based on custom unlock dates
 - 📁 Organize with custom categories
 -  Tag system for better organization
@@ -304,14 +304,14 @@ CodeTime-Capsule/
 
 ## 🔐 Security Features
 
-- ✅ JWT-based authentication
-- ✅ Password hashing with bcryptjs
-- ✅ Rate limiting on auth endpoints
-- ✅ CORS protection
-- ✅ Helmet for HTTP headers security
-- ✅ Input validation with express-validator
-- ✅ SQL injection prevention via ORM
-- ✅ XSS protection via React
+-  JWT-based authentication
+-  Password hashing with bcryptjs
+-  Rate limiting on auth endpoints
+-  CORS protection
+-  Helmet for HTTP headers security
+-  Input validation with express-validator
+-  SQL injection prevention via ORM
+-  XSS protection via React
 
 ## 🧪 Testing
 
@@ -407,7 +407,7 @@ For support, open an issue on GitHub or contact the team.
 ## 📊 Project Status
 
 - **Version:** 4.0.0 - Community Edition
-- **Status:** ✅ Active Development
+- **Status:**  Active Development
 - **Last Updated:** January 2026
 - **Challenge:** Desafio Mensal de Programação - Janeiro 2026
 

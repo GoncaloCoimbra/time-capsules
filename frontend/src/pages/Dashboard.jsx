@@ -16,7 +16,7 @@ import Achievements from '../components/Achievements';
 import DiscoverCommunity from '../components/DiscoverCommunity';
 import './Dashboard.css';
 
-// ✅ Adiciona estes imports
+//  Adiciona estes imports
 import { useTranslation } from 'react-i18next';
 import LanguageSelector from '../components/LanguageSelector';
 
@@ -132,7 +132,7 @@ const PreviewModal = ({
         
         <div className="preview-actions">
           <button onClick={onConfirm} className="chronicle-button">
-            ✅ Confirmar e Selar
+             Confirmar e Selar
           </button>
           <button onClick={onClose} className="btn-secondary">
             ✏️ Editar Detalhes
@@ -144,7 +144,7 @@ const PreviewModal = ({
 };
 
 function Dashboard() {
-  // ✅ Adicione o hook de tradução
+  //  Adicione o hook de tradução
   const { t } = useTranslation();
   
   const [capsules, setCapsules] = useState([]);
@@ -1058,7 +1058,7 @@ function Dashboard() {
             </div>
           </div>
           
-          {/* ✅ LanguageSelector CORRETAMENTE POSICIONADO */}
+          {/*  LanguageSelector CORRETAMENTE POSICIONADO */}
           <div style={{ position: 'relative', zIndex: 10000 }}>
             <LanguageSelector />
           </div>
