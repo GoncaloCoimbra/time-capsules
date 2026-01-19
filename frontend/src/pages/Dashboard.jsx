@@ -216,7 +216,7 @@ function Dashboard() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [capsuleToDelete, setCapsuleToDelete] = useState(null);
   
-  // Novos estados para funcionalidades extras
+ 
   const [showUnlockAnimation, setShowUnlockAnimation] = useState(false);
   const [animationCapsule, setAnimationCapsule] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
