@@ -1041,13 +1041,9 @@ function Dashboard() {
             </div>
           </div>
           <img
-            src="/public/logo"
-            alt="Time Chronicle Logo"
-            className="header-logo"
-            style={{
-              height: "50px",
-              marginLeft: "12px",
-  }}
+  src="/logo capsula.png" 
+  alt="Time Chronicle Logo"
+  className="header-logo"
 />
         </div>
         
