@@ -1040,10 +1040,15 @@ function Dashboard() {
               <div className="glyph-hand minute"></div>
             </div>
           </div>
-          <div className="header-text">
-            <h1 className="chronicle-title">Time Chronicle</h1>
-            <p className="chronicle-subtitle">{t('dashboard.title')}</p>
-          </div>
+          <img
+            src="/public/logo"
+            alt="Time Chronicle Logo"
+            className="header-logo"
+            style={{
+              height: "50px",
+              marginLeft: "12px",
+  }}
+/>
         </div>
         
         <div className="header-right" style={{ position: 'relative', zIndex: 1000 }}>
