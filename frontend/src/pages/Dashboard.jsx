@@ -20,6 +20,7 @@ import './Dashboard.css';
 import { useTranslation } from 'react-i18next';
 import LanguageSelector from '../components/LanguageSelector';
 
+
 // Componente de Animação de Abertura de Cápsula
 const UnlockAnimation = ({ capsule, onComplete }) => {
   useEffect(() => {
@@ -226,7 +227,7 @@ function Dashboard() {
     return savedTheme || 'dark';
   });
   
-  const { user, logout } = useAuth();
+ const { user, logout, updateUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const secondHandRef = useRef(null);
@@ -516,7 +517,23 @@ function Dashboard() {
     loadAllData();
     loadLocalReminders();
   }, [capsuleScope]);
+useEffect(() => {
+  loadAllData();
+  loadLocalReminders();
+}, [capsuleScope]);
 
+
+useEffect(() => {
+  const refreshUserData = async () => {
+    try {
+      await updateUser();
+    } catch (error) {
+      console.error('Erro ao atualizar dados do usuário:', error);
+    }
+  };
+  
+  refreshUserData();
+}, [updateUser]);
   // Helpers to compute trends and leaderboard locally from capsule list
   const computeTrendingTagsFromCapsules = (capsules) => {
     const counts = {};
@@ -1092,9 +1109,22 @@ function Dashboard() {
                 {t('dashboard.scheduleReminder')}
               </button>
             </div>
-            <div className="user-avatar" onClick={goToUserProfile} style={{ cursor: 'pointer' }} title={t('dashboard.viewProfile')}>
-              {user?.username?.substring(0, 2).toUpperCase() || 'US'}
-            </div>
+          <div className="user-avatar" onClick={goToUserProfile} style={{ cursor: 'pointer' }} title={t('dashboard.viewProfile')}>
+  <img
+    src={user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.id || 'user'}`}
+    alt={user?.username || 'User'}
+    style={{ 
+      width: '100%', 
+      height: '100%', 
+      borderRadius: '50%', 
+      objectFit: 'cover' 
+    }}
+    onError={(e) => { 
+      e.target.onerror = null; 
+      e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.id || 'default'}`; 
+    }}
+  />
+</div>
             <div className="user-details">
               <span className="user-name">{user?.username || 'User'}</span>
               <span className="user-role">{t('dashboard.timeTraveler')}</span>

@@ -124,7 +124,7 @@ export default function RevealCapsule() {
             justifyContent: 'space-between',
             marginBottom: 12 
           }}>
-            <h4 style={{ margin: 0, color: '#e2b714' }}>💬 Reações da Comunidade</h4>
+            <h4 style={{ margin: 0, color: '#e2b714' }}> Reações da Comunidade</h4>
           </div>
           
           <ReactionPicker capsuleId={id} variant="default" />

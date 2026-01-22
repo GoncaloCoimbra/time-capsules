@@ -1,4 +1,4 @@
-﻿import { createContext, useState, useContext, useEffect } from 'react';
+﻿import { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import api from '../services/api';
 
 const AuthContext = createContext();
@@ -14,7 +14,6 @@ export const AuthProvider = ({ children }) => {
       if (token && savedUser) {
         setUser(JSON.parse(savedUser));
       } else if (token && !savedUser) {
-        // If we have a token but no saved user, try to fetch the current user
         try {
           const res = await api.get('/auth/me');
           const u = res.data?.user;
@@ -47,10 +46,8 @@ export const AuthProvider = ({ children }) => {
     return response.data;
   };
 
-  // Use this for OAuth callback token handling
   const oauthLogin = async (token) => {
     localStorage.setItem('token', token);
-    // Attempt to fetch /auth/me
     const res = await api.get('/auth/me');
     const u = res.data?.user;
     if (!u) throw new Error('Failed to fetch user after oauth');
@@ -59,6 +56,29 @@ export const AuthProvider = ({ children }) => {
     return u;
   };
 
+  const updateUser = useCallback(async () => {
+    try {
+      const res = await api.get('/auth/me');
+      const updatedUser = res.data?.user;
+      if (updatedUser) {
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        setUser(updatedUser);
+        return updatedUser;
+      }
+    } catch (err) {
+      console.error('Erro ao atualizar dados do usuário:', err);
+      throw err;
+    }
+  }, []);
+
+  const updateUserAvatar = useCallback((newAvatar) => {
+    setUser(prevUser => {
+      const updatedUser = { ...prevUser, avatar: newAvatar };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      return updatedUser;
+    });
+  }, []);
+
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -66,7 +86,16 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, register, login, logout, oauthLogin }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      loading, 
+      register, 
+      login, 
+      logout, 
+      oauthLogin,
+      updateUser,
+      updateUserAvatar
+    }}>
       {children}
     </AuthContext.Provider>
   );
