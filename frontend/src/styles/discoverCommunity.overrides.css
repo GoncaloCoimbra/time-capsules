@@ -1,0 +1,438 @@
+/* 
+   CORREÇÃO FINAL DO PÓDIO - VERSÃO DEFINITIVA
+   - Texto BRANCO em TODOS os lugares
+   - TODOS os textos VISÍVEIS dentro das caixinhas
+   - Botão ATUALIZAR arredondado
+   - Sem remover nenhum elemento
+*/
+
+/* ============================================
+   BOTÃO ATUALIZAR - ARREDONDADO
+   ============================================ */
+
+.chronicle-button {
+  padding: 10px 20px !important;
+  background: linear-gradient(135deg, #e2b714 0%, #f59e0b 100%) !important;
+  color: #000 !important;
+  border: none !important;
+  border-radius: 25px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.chronicle-button:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 20px rgba(226, 183, 20, 0.3) !important;
+}
+
+.chronicle-button:active {
+  transform: translateY(0) !important;
+}
+
+/* ============================================
+   ESTRUTURA DO PÓDIO - MANTÉM TUDO VISÍVEL
+   ============================================ */
+
+.podium-place {
+  text-align: center !important;
+  padding: 24px 20px !important;
+  border-radius: 16px !important;
+  min-width: 220px !important;
+  transition: transform 0.3s ease, box-shadow 0.3s ease !important;
+  cursor: pointer !important;
+  position: relative !important;
+  overflow: visible !important; /* IMPORTANTE: Mantém tudo visível */
+}
+
+.podium-place:hover {
+  transform: translateY(-8px) !important;
+}
+
+/* Alturas específicas */
+.place-1 {
+  height: 300px !important;
+  z-index: 15 !important;
+  box-shadow: 0 12px 32px rgba(226, 183, 20, 0.35) !important;
+}
+
+.place-2 {
+  height: 260px !important;
+  z-index: 12 !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25) !important;
+}
+
+.place-3 {
+  height: 220px !important;
+  z-index: 10 !important;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* ============================================
+   MEDALHAS E AVATARES
+   ============================================ */
+
+.podium-rank {
+  font-size: 42px !important;
+  margin-bottom: 10px !important;
+  position: relative !important;
+  z-index: 30 !important;
+  line-height: 1 !important;
+}
+
+.podium-avatar {
+  width: 80px !important;
+  height: 80px !important;
+  border-radius: 50% !important;
+  border: 3px solid white !important;
+  margin: 0 auto 10px !important;
+  object-fit: cover !important;
+  position: relative !important;
+  z-index: 20 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* ============================================
+   USERNAME - TEXTO BRANCO EM TODOS OS LUGARES
+   ============================================ */
+
+.podium-username {
+  margin: 10px 0 5px 0 !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  position: relative !important;
+  z-index: 5 !important;
+  color: white !important;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+}
+
+.place-1 .podium-username {
+  color: white !important;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+}
+
+.place-2 .podium-username {
+  color: white !important;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+}
+
+.place-3 .podium-username {
+  color: white !important;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* ============================================
+   SCORE - TEXTO BRANCO EM TODOS OS LUGARES
+   ============================================ */
+
+.podium-score {
+  font-size: 26px !important;
+  font-weight: 800 !important;
+  margin: 8px 0 !important;
+  line-height: 1.2 !important;
+  position: relative !important;
+  z-index: 5 !important;
+  color: white !important;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+}
+
+.place-1 .podium-score {
+  color: white !important;
+  font-size: 28px !important;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+}
+
+.place-2 .podium-score {
+  color: white !important;
+  font-size: 24px !important;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+}
+
+.place-3 .podium-score {
+  color: white !important;
+  font-size: 24px !important;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* ============================================
+   STATS - TEXTO BRANCO EM TODOS OS LUGARES
+   ============================================ */
+
+.podium-stats {
+  display: flex !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  font-size: 11px !important;
+  margin-top: 12px !important;
+  flex-wrap: wrap !important;
+  font-weight: 600 !important;
+  position: relative !important;
+  z-index: 5 !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+}
+
+.place-1 .podium-stats {
+  color: rgba(255, 255, 255, 0.9) !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+}
+
+.place-2 .podium-stats {
+  color: rgba(255, 255, 255, 0.9) !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+}
+
+.place-3 .podium-stats {
+  color: rgba(255, 255, 255, 0.9) !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* ============================================
+   SCORE BADGE - TEXTO BRANCO COM BORDA
+   ============================================ */
+
+.score-badge {
+  background: transparent !important;
+  color: white !important;
+  padding: 8px 22px !important;
+  border-radius: 30px !important;
+  border: 3px solid rgba(255, 255, 255, 0.95) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  margin: 12px auto 10px !important;
+  font-weight: 800 !important;
+  width: fit-content !important;
+  position: relative !important;
+  z-index: 5 !important;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2) !important;
+  backdrop-filter: blur(6px) !important;
+  -webkit-backdrop-filter: blur(6px) !important;
+  transition: all 0.3s ease !important;
+}
+
+.score-badge:hover {
+  border-color: rgba(255, 255, 255, 1) !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3) !important;
+  transform: translateY(-2px) !important;
+}
+
+.score-icon {
+  font-size: 16px !important;
+  color: white !important;
+  line-height: 1 !important;
+}
+
+.score-value {
+  font-size: 24px !important;
+  font-weight: 800 !important;
+  color: white !important;
+  line-height: 1 !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+}
+
+.score-label {
+  font-size: 11px !important;
+  opacity: 0.95 !important;
+  color: white !important;
+  text-transform: lowercase !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+}
+
+/* BADGE ESPECÍFICO PARA CADA LUGAR - TEXTO BRANCO */
+.place-1 .score-badge {
+  border-color: rgba(255, 255, 255, 0.95) !important;
+  background: rgba(0, 0, 0, 0.08) !important;
+}
+
+.place-1 .score-value,
+.place-1 .score-label,
+.place-1 .score-icon {
+  color: white !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.25) !important;
+}
+
+.place-2 .score-badge {
+  border-color: rgba(255, 255, 255, 0.95) !important;
+  background: rgba(0, 0, 0, 0.08) !important;
+}
+
+.place-2 .score-value,
+.place-2 .score-label,
+.place-2 .score-icon {
+  color: white !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.25) !important;
+}
+
+.place-3 .score-badge {
+  border-color: rgba(255, 255, 255, 0.95) !important;
+  background: rgba(0, 0, 0, 0.08) !important;
+}
+
+.place-3 .score-value,
+.place-3 .score-label,
+.place-3 .score-icon {
+  color: white !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* ============================================
+   RESPONSIVE - Mobile
+   ============================================ */
+
+@media (max-width: 768px) {
+  .podium-place {
+    width: 90% !important;
+    max-width: 350px !important;
+    height: auto !important;
+    min-height: 220px !important;
+    padding: 20px 16px !important;
+  }
+  
+  .place-1 {
+    height: auto !important;
+    min-height: 240px !important;
+  }
+  
+  .place-2,
+  .place-3 {
+    height: auto !important;
+    min-height: 220px !important;
+  }
+  
+  .score-badge {
+    padding: 6px 18px !important;
+    margin: 10px auto 8px !important;
+  }
+  
+  .score-value {
+    font-size: 20px !important;
+  }
+  
+  .podium-score {
+    font-size: 22px !important;
+  }
+  
+  .place-1 .podium-score {
+    font-size: 24px !important;
+  }
+  
+  .podium-username {
+    font-size: 14px !important;
+  }
+  
+  .podium-stats {
+    font-size: 10px !important;
+    gap: 8px !important;
+  }
+  
+  .chronicle-button {
+    padding: 8px 16px !important;
+    font-size: 0.9rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .score-badge {
+    padding: 5px 16px !important;
+  }
+  
+  .score-value {
+    font-size: 18px !important;
+  }
+  
+  .score-label {
+    font-size: 10px !important;
+  }
+  
+  .podium-score {
+    font-size: 20px !important;
+  }
+  
+  .podium-username {
+    font-size: 13px !important;
+  }
+  
+  .podium-stats {
+    font-size: 9px !important;
+  }
+  
+  .chronicle-button {
+    padding: 7px 14px !important;
+    font-size: 0.85rem !important;
+  }
+}
+
+/* ============================================
+   BOX-SIZING GLOBAL
+   ============================================ */
+
+.podium-place * {
+  box-sizing: border-box !important;
+}
+
+/* Elementos decorativos no fundo */
+.podium-place::before,
+.podium-place::after {
+  z-index: 1 !important;
+}
+
+/* ============================================
+   BOTÕES DE PERÍODO - ARREDONDADOS
+   ============================================ */
+
+.period-btn {
+  padding: 8px 16px !important;
+  border: none !important;
+  border-radius: 20px !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  font-size: 14px !important;
+}
+
+.period-btn.active {
+  background: linear-gradient(135deg, #e2b714 0%, #f59e0b 100%) !important;
+  color: white !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3) !important;
+}
+
+.period-btn:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* ============================================
+   TABS - LEVEMENTE QUADRADOS
+   ============================================ */
+
+.tab-button {
+  padding: 10px 20px !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: none !important;
+  border-radius: 8px !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+  font-size: 1rem !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.tab-button:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+}
+
+.tab-button.active {
+  background: linear-gradient(135deg, #e2b714 0%, #f59e0b 100%) !important;
+  color: #000 !important;
+  font-weight: bold !important;
+  box-shadow: 0 4px 15px rgba(226, 183, 20, 0.3) !important;
+}

@@ -41,18 +41,18 @@ export const commentAPI = {
   delete: (id) => api.delete(`/comments/${id}`)
 };
 
-// ========================================
+
 // LIKE API (Sistema Antigo - Compatibilidade)
-// ========================================
+
 export const likeAPI = {
   toggle: (capsuleId) => api.post('/likes/toggle', { capsuleId }),
   getCount: (capsuleId) => api.get(`/likes/${capsuleId}/count`),
   isLiked: (capsuleId) => api.get(`/likes/${capsuleId}/check`)
 };
 
-// ========================================
+
 // REACTION API (Sistema Novo - Multi-emoji)
-// ========================================
+
 export const reactionAPI = {
   /**
    * Toggle de reação em cápsula ou comentário
@@ -122,6 +122,7 @@ export const communityAPI = {
 export const authAPI = {
   register: (data) => api.post('/auth/register', data),
   login: (data) => api.post('/auth/login', data),
+  getProfile: () => api.get('/auth/me'),
   updateProfile: (data) => api.patch('/auth/profile', data)
 };
 
@@ -129,7 +130,18 @@ export const authAPI = {
 export const followAPI = {
   toggle: (targetId) => api.post('/follow/toggle', { targetId }),
   getFollowing: (userId) => api.get(`/follow/following/${userId}`),
-  getFollowers: (userId) => api.get(`/follow/followers/${userId}`)
+  getFollowers: (userId) => api.get(`/follow/followers/${userId}`),
+  getPendingRequests: () => api.get('/follow/requests/pending'),
+  approvePendingRequest: (requesterId) => api.post(`/follow/requests/${requesterId}/approve`),
+  rejectPendingRequest: (requesterId) => api.post(`/follow/requests/${requesterId}/reject`)
+};
+
+// Follow Capsule API
+export const followCapsuleAPI = {
+  toggle: (capsuleId) => api.post(`/capsules/${capsuleId}/follow`),
+  getFollowed: () => api.get('/capsules/followed/list'),
+  getFollowerCount: (capsuleId) => api.get(`/capsules/${capsuleId}/followers`),
+  isFollowing: (capsuleId) => api.get(`/capsules/${capsuleId}/is-following`)
 };
 
 // Notification API

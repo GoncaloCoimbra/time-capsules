@@ -51,7 +51,6 @@ const Capsule = sequelize.define('Capsule', {
     type: DataTypes.STRING,
     defaultValue: '#6366f1'
   },
-  // Optional code snippet and language for developer capsules
   codeSnippet: {
     type: DataTypes.TEXT,
     allowNull: true
@@ -64,6 +63,12 @@ const Capsule = sequelize.define('Capsule', {
     type: DataTypes.INTEGER,
     defaultValue: 0,
     comment: 'Days before unlock to send reminder'
+  },
+  
+  metadata: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue: {}
   }
 }, {
   timestamps: true

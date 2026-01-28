@@ -125,9 +125,9 @@
   transition: transform 0.2s ease;
 }
 
-/* ========================================
+/*
    PICKER FLUTUANTE (Popup)
-   ======================================== */
+   */
 
 .reaction-picker-popup {
   position: absolute;
@@ -217,9 +217,9 @@
   letter-spacing: 0.5px;
 }
 
-/* ========================================
+/*
    VARIANTES
-   ======================================== */
+   */
 
 /* Compact - para comentários ou espaços pequenos */
 .reaction-picker-container.compact .reaction-bubble {
@@ -268,9 +268,9 @@
   z-index: 10;
 }
 
-/* ========================================
+/*
    ANIMAÇÕES ADICIONAIS
-   ======================================== */
+   */
 
 @keyframes reactionPulse {
   0%, 100% {
@@ -302,9 +302,9 @@
   animation: reactionGlow 0.8s ease-out;
 }
 
-/* ========================================
+/*
    RESPONSIVO
-   ======================================== */
+   */
 
 @media (max-width: 768px) {
   .reaction-picker-popup {

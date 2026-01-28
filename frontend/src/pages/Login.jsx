@@ -2,7 +2,7 @@
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
-import toast from 'react-hot-toast';
+import { showToast } from '../components/ToastNotification';
 
 function Login() {
   const [email, setEmail] = useState('');
@@ -10,11 +10,23 @@ function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [oauthConfig, setOauthConfig] = useState({ github: false, google: false });
   const { login } = useAuth();
   const navigate = useNavigate();
   const secondHandRef = useRef(null);
+
+  // Carrega credenciais guardadas ao montar
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('rememberedEmail');
+    const savedRememberMe = localStorage.getItem('rememberMe') === 'true';
+    
+    if (savedEmail && savedRememberMe) {
+      setEmail(savedEmail);
+      setRememberMe(true);
+    }
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -80,11 +92,29 @@ function Login() {
     setLoading(true);
     
     try {
-      await login(email, password);
-      navigate('/dashboard');
+      const result = await login(email, password);
+      console.log('✓ Login bem-sucedido:', result);
+      
+      // Guardar credenciais se "Lembrar-me" está marcado
+      if (rememberMe) {
+        localStorage.setItem('rememberedEmail', email);
+        localStorage.setItem('rememberMe', 'true');
+      } else {
+        localStorage.removeItem('rememberedEmail');
+        localStorage.removeItem('rememberMe');
+      }
+      
+      showToast(' Bem-vindo de volta!', 'success');
+      
+      // Pequeno delay para garantir que o estado é atualizado antes de navegar
+      setTimeout(() => {
+        console.log('📍 Navegando para /dashboard');
+        navigate('/dashboard');
+      }, 500);
     } catch (err) {
-      setError(err.response?.data?.message || 'Credenciais inválidas. Por favor, tenta novamente.');
-    } finally {
+      const message = err.response?.data?.message || 'Credenciais inválidas. Por favor, tenta novamente.';
+      setError(message);
+      showToast('❌ ' + message, 'error');
       setLoading(false);
     }
   };
@@ -278,7 +308,12 @@ function Login() {
           
           <div className="form-options">
             <label className="checkbox-container">
-              <input type="checkbox" className="hidden-checkbox" />
+              <input 
+                type="checkbox" 
+                className="hidden-checkbox" 
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+              />
               <div className="custom-checkbox">
                 <svg className="check-icon" viewBox="0 0 24 24">
                   <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>

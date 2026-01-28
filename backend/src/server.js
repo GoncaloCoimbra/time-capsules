@@ -19,8 +19,8 @@ require('./passport');
 app.use(helmet());
 app.use(compression());
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '15mb' }));
+app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 app.use(passport.initialize());
 
 // Rate limiters
@@ -78,6 +78,8 @@ const Follow = require('./models/Follow');
 const Notification = require('./models/Notification');
 const Vote = require('./models/Vote');
 const ScheduledNotification = require('./models/ScheduledNotification');
+const FollowCapsule = require('./models/FollowCapsule');
+const FollowRequest = require('./models/FollowRequest');
 
 // Model associations
 Capsule.belongsTo(Category, { foreignKey: 'categoryId', as: 'category' });
@@ -116,6 +118,19 @@ Vote.belongsTo(User, { foreignKey: 'userId' });
 // Follow associations
 User.hasMany(Follow, { foreignKey: 'followerId', as: 'following' });
 User.hasMany(Follow, { foreignKey: 'followingId', as: 'followers' });
+
+// Follow Request associations (for private accounts)
+User.hasMany(FollowRequest, { foreignKey: 'requesterId', as: 'sentFollowRequests' });
+User.hasMany(FollowRequest, { foreignKey: 'targetId', as: 'receivedFollowRequests' });
+FollowRequest.belongsTo(User, { foreignKey: 'requesterId', as: 'requester' });
+FollowRequest.belongsTo(User, { foreignKey: 'targetId', as: 'target' });
+
+// Follow Capsule associations
+Capsule.hasMany(FollowCapsule, { foreignKey: 'capsuleId', as: 'followers' });
+FollowCapsule.belongsTo(Capsule, { foreignKey: 'capsuleId', as: 'capsule' });
+
+User.hasMany(FollowCapsule, { foreignKey: 'userId', as: 'followedCapsules' });
+FollowCapsule.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
 // Notifications
 User.hasMany(Notification, { foreignKey: 'userId', as: 'notifications' });

@@ -36,13 +36,17 @@ Perfect for:
 - 🔍 Advanced search and filtering
 - 🖼️ Multiple view modes (Grid/List)
 - 📑 Multiple sorting options
--  Reminder system for unlocks
--  View counter
--  Privacy controls (public/private)
+- ⏰ Reminder system for unlocks
+- 👁️ View counter (1 unique view per user)
+- 🔐 Privacy controls (public/private accounts)
+- 🔔 Pending follow requests for private accounts
+- ✨ Real-time countdown timer for sealed capsules
 - 📚 Templates library
 - 📝 Audit logging
 - ⚡ Performance optimizations
 - 🌗 Dark/Light mode
+- 💾 Remember me functionality on login
+- ✅ Terms agreement on registration
 
 ## 🛠️ Tech Stack
 
@@ -146,11 +150,16 @@ npm run dev
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/capsules` | Get all user capsules |
+| GET | `/api/capsules?scope=public` | Get public capsules from others |
+| GET | `/api/capsules?scope=myPublic` | Get user's public capsules |
 | POST | `/api/capsules` | Create new capsule |
-| GET | `/api/capsules/:id` | Get capsule by ID |
+| GET | `/api/capsules/:id` | Get capsule by ID (counts unique views) |
 | PUT | `/api/capsules/:id` | Update capsule |
 | DELETE | `/api/capsules/:id` | Delete capsule |
 | PATCH | `/api/capsules/:id/favorite` | Toggle favorite status |
+| GET | `/api/capsules/check/unlock-status` | Check capsule unlock status (debug) |
+| POST | `/api/capsules/test/force-unlock` | Force unlock all capsules (testing) |
+| POST | `/api/capsules/test/update-unlock-date` | Update unlock date (testing) |
 
 ### Statistics & Data
 | Method | Endpoint | Description |
@@ -184,6 +193,26 @@ npm run dev
 | GET | `/api/likes/:capsuleId/check` | Check if user liked |
 
 ### Community Features
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/community/explore/public` | Explore public capsules |
+| GET | `/api/community/stats` | Get community statistics |
+| GET | `/api/community/leaderboard` | Get leaderboard |
+| POST | `/api/community/track-view` | Track capsule view |
+| GET | `/api/community/trending` | Get trending technologies |
+
+### Social & Privacy Features
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/follow/toggle` | Toggle follow user |
+| GET | `/api/follow/followers` | Get user followers |
+| GET | `/api/follow/following` | Get user following |
+| GET | `/api/follow/requests/pending` | Get pending follow requests (private accounts) |
+| POST | `/api/follow/requests/:requesterId/approve` | Approve follow request |
+| POST | `/api/follow/requests/:requesterId/reject` | Reject follow request |
+| PATCH | `/api/auth/me/privacy` | Toggle account privacy (public/private) |
 
 <!-- Embedded demo GIF (base64 inline for immediate rendering) -->
 <img src="data:image/gif;base64,R0lGODlhEAAQAKIAAP///wAAAMLCwgAAAG5ubgAAAAAAAAAAACH5BAEAAAQALAAAAAAQABAAAAKBlI+py+0Po5y02ouz3rz7D4biSJbmiabqyrbuC8fyTN8gAAOw==" alt="Demo GIF" />
@@ -312,6 +341,9 @@ CodeTime-Capsule/
 -  Input validation with express-validator
 -  SQL injection prevention via ORM
 -  XSS protection via React
+-  Privacy account system with follow request approval
+-  Unique view counting (1 view per user per capsule)
+-  Creator-agnostic view tracking (doesn't count own views)
 
 ## 🧪 Testing
 
@@ -323,6 +355,64 @@ npm test
 # Frontend tests
 cd ../frontend
 npm test
+\\\
+
+## 👁️ View Counter System
+
+### How It Works
+
+The view counter system ensures **accurate, unique view tracking**:
+
+1. **One View Per User Per Capsule**
+   - Each unique user can only count as 1 view for any capsule
+   - Repeated visits from the same user don't increment the counter
+   - Data stored in `CapsuleView` table linking users to capsules
+
+2. **Creator Views Not Counted**
+   - When the capsule creator views their own capsule, it doesn't count
+   - Only views from other users are counted
+   - Ensures authentic engagement metrics
+
+3. **Automatic Tracking**
+   - Views are automatically counted when calling `GET /api/capsules/:id`
+   - System checks if user has already viewed that capsule
+   - If new view, creates `CapsuleView` record and increments `viewCount`
+
+### Example Flow
+
+\\\
+User A creates capsule "My First Code"
+- viewCount = 0
+
+User B opens the capsule
+- System creates CapsuleView(userId: B, capsuleId: X)
+- viewCount = 1
+
+User B opens the same capsule again
+- System finds existing CapsuleView for User B
+- Does NOT increment (already counted)
+- viewCount = 1
+
+User C opens the capsule
+- System creates CapsuleView(userId: C, capsuleId: X)
+- viewCount = 2
+\\\
+
+### API Response
+
+When fetching a capsule, the response includes:
+
+\\\json
+{
+  "capsule": {
+    "id": "9825b953-30b4-44a2-b031-e8155396244e",
+    "title": "My First Code",
+    "viewCount": 5,           // Number of unique viewers (excluding creator)
+    "lastViewed": "2026-01-27T16:15:30Z",  // Last time anyone viewed it
+    "creatorId": "user-id-123",
+    ...
+  }
+}
 \\\
 
 ##  Building for Production
@@ -406,10 +496,21 @@ For support, open an issue on GitHub or contact the team.
 
 ## 📊 Project Status
 
-- **Version:** 4.0.0 - Community Edition
-- **Status:**  Active Development
-- **Last Updated:** January 2026
+- **Version:** 4.1.0 - Community Edition (Enhanced)
+- **Status:** Active Development
+- **Last Updated:** January 27, 2026
 - **Challenge:** Desafio Mensal de Programação - Janeiro 2026
+
+### Recent Updates (v4.1.0)
+- ✅ Real-time capsule unlock countdown timer
+- ✅ Automatic capsule unlock detection
+- ✅ Privacy account system with follow requests
+- ✅ Unique view counter (1 per user per capsule)
+- ✅ Remember me functionality on login
+- ✅ Terms agreement validation on register
+- ✅ Redesigned notifications center with animations
+- ✅ Community page visual improvements
+- ✅ PT-PT localization comments throughout codebase
 
 ## 🎯 Roadmap
 

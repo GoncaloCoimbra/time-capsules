@@ -9,17 +9,100 @@ import {
 } from 'recharts';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
-import { capsuleAPI, categoryAPI, tagAPI, communityAPI, commentAPI, likeAPI, favoriteAPI, notificationAPI } from '../services/capsuleService';
+import { capsuleAPI, categoryAPI, tagAPI, communityAPI, commentAPI, likeAPI, favoriteAPI, notificationAPI, followCapsuleAPI } from '../services/capsuleService';
 import NotificationsCenter from '../components/NotificationsCenter';
 import TimelineView from '../components/TimelineView';
 import Achievements from '../components/Achievements';
 import DiscoverCommunity from '../components/DiscoverCommunity';
+import EmptyState from '../components/EmptyState';
+import Pagination from '../components/Pagination';
+import ToastNotification, { showToast } from '../components/ToastNotification';
 import './Dashboard.css';
 
-//  Adiciona estes imports
+// Adiciona estes imports
 import { useTranslation } from 'react-i18next';
 import LanguageSelector from '../components/LanguageSelector';
 
+// Componente de Avatar Reutilizável
+const UserAvatar = ({ user, size = 'medium', showName = false, className = '' }) => {
+  const sizeClasses = {
+    small: { width: '32px', height: '32px', fontSize: '12px' },
+    medium: { width: '40px', height: '40px', fontSize: '14px' },
+    large: { width: '50px', height: '50px', fontSize: '16px' }
+  };
+
+  const dimensions = sizeClasses[size] || sizeClasses.medium;
+  const initials = (user?.username || 'US').substring(0, 2).toUpperCase();
+  const [imgError, setImgError] = useState(false);
+  const [avatarTimestamp, setAvatarTimestamp] = useState(Date.now());
+  
+  const avatarUrl = user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.id || user?.userId || 'default'}`;
+
+  // Reseta o erro quando o avatar muda
+  useEffect(() => {
+    setImgError(false);
+    setAvatarTimestamp(Date.now());
+  }, [user?.avatar, user?.id]);
+
+  // Adiciona timestamp ao URL para forçar re-carregamento
+  const finalAvatarUrl = avatarUrl.includes('dicebear') 
+    ? `${avatarUrl}&_=${avatarTimestamp}` 
+    : `${avatarUrl}${avatarUrl.includes('?') ? '&' : '?'}_=${avatarTimestamp}`;
+
+  return (
+    <div className={`user-avatar-container ${className}`} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div 
+        className="avatar-wrapper"
+        style={{
+          width: dimensions.width,
+          height: dimensions.height,
+          borderRadius: '50%',
+          overflow: 'hidden',
+          position: 'relative',
+          background: 'linear-gradient(135deg, #e2b714, #1f7a8c)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0
+        }}
+      >
+        {!imgError ? (
+          <img
+            src={finalAvatarUrl}
+            alt={user?.username || 'User'}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover'
+            }}
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <div 
+            className="avatar-fallback"
+            style={{
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#0f172a',
+              fontWeight: 'bold',
+              fontSize: dimensions.fontSize
+            }}
+          >
+            {initials}
+          </div>
+        )}
+      </div>
+      {showName && user?.username && (
+        <span style={{ color: '#f1f5f9', fontWeight: '500' }}>
+          {user.username}
+        </span>
+      )}
+    </div>
+  );
+};
 
 // Componente de Animação de Abertura de Cápsula
 const UnlockAnimation = ({ capsule, onComplete }) => {
@@ -145,7 +228,7 @@ const PreviewModal = ({
 };
 
 function Dashboard() {
-  //  Adicione o hook de tradução
+  // Adicione o hook de tradução
   const { t } = useTranslation();
   
   const [capsules, setCapsules] = useState([]);
@@ -210,7 +293,7 @@ function Dashboard() {
   const [showTimeTravel, setShowTimeTravel] = useState(false);
   const [leaderboard, setLeaderboard] = useState([]);
   const [achievements, setAchievements] = useState([]);
-  const [capsuleScope, setCapsuleScope] = useState('mine'); // 'mine' ou 'public'
+  const [capsuleScope, setCapsuleScope] = useState('mine'); // 'mine', 'myPublic' ou 'following'
   const [newCapsuleId, setNewCapsuleId] = useState(null);
   
   // Delete confirmation states
@@ -317,7 +400,7 @@ function Dashboard() {
       const id = c.id;
       const unlocked = c.isUnlocked || new Date(c.unlockDate) <= currentTime;
       if (unlocked && !seenUnlockedRef.current.has(id)) {
-        // novo desbloqueio - animar
+        // desbloqueio - animar
         seenUnlockedRef.current.add(id);
         setRecentlyUnlocked(prev => [...prev, id]);
         
@@ -468,9 +551,37 @@ function Dashboard() {
     try {
       setLoading(true);
       
+      let capsulesWithFollowStatus = [];
+      
       // Load capsules based on scope
-      const capsulesRes = await capsuleAPI.getAll(capsuleScope === 'public' ? { scope: 'public' } : {});
-      setCapsules(capsulesRes.data.capsules || []);
+      if (capsuleScope === 'following') {
+        // Load capsules the user is following
+        const followedRes = await followCapsuleAPI.getFollowed();
+        capsulesWithFollowStatus = (followedRes.data.capsules || []).map(c => ({ ...c, isFollowing: true }));
+      } else {
+        const params = { scope: capsuleScope };
+        console.log('🔍 Enviando params:', params);
+        const capsulesRes = await capsuleAPI.getAll(params);
+        console.log('📦 Cápsulas recebidas da API:', capsulesRes.data.capsules);
+        
+        // Load follow status for each capsule (except own capsules)
+        capsulesWithFollowStatus = capsulesRes.data.capsules || [];
+        if (capsuleScope !== 'mine' && capsuleScope !== 'myPublic') {
+          capsulesWithFollowStatus = await Promise.all(
+            capsulesWithFollowStatus.map(async (capsule) => {
+              try {
+                const followRes = await followCapsuleAPI.isFollowing(capsule.id);
+                return { ...capsule, isFollowing: followRes.data.isFollowing };
+              } catch (error) {
+                console.error(`Error checking follow status for ${capsule.id}:`, error);
+                return { ...capsule, isFollowing: false };
+              }
+            })
+          );
+        }
+      }
+      
+      setCapsules(capsulesWithFollowStatus);
       
       // Load categories - SEMPRE carregar as categorias do usuário
       const categoriesRes = await categoryAPI.getAll();
@@ -481,7 +592,7 @@ function Dashboard() {
       setTags(tagsRes.data.tags || []);
       
       // Load statistics (apenas para minhas cápsulas)
-      if (capsuleScope === 'mine') {
+      if (capsuleScope === 'mine' || capsuleScope === 'myPublic') {
         const statsRes = await capsuleAPI.getStatistics();
         setStatistics(statsRes.data.statistics);
       }
@@ -517,23 +628,22 @@ function Dashboard() {
     loadAllData();
     loadLocalReminders();
   }, [capsuleScope]);
-useEffect(() => {
-  loadAllData();
-  loadLocalReminders();
-}, [capsuleScope]);
 
+  useEffect(() => {
+    const refreshUserData = async () => {
+      try {
+        const { refreshUserFromServer } = useAuth();
+        if (refreshUserFromServer) {
+          await refreshUserFromServer();
+        }
+      } catch (error) {
+        console.error('Erro ao atualizar dados do usuário:', error);
+      }
+    };
+    
+    refreshUserData();
+  }, []);
 
-useEffect(() => {
-  const refreshUserData = async () => {
-    try {
-      await updateUser();
-    } catch (error) {
-      console.error('Erro ao atualizar dados do usuário:', error);
-    }
-  };
-  
-  refreshUserData();
-}, [updateUser]);
   // Helpers to compute trends and leaderboard locally from capsule list
   const computeTrendingTagsFromCapsules = (capsules) => {
     const counts = {};
@@ -560,58 +670,57 @@ useEffect(() => {
     return arr;
   };
 
-  // Load trending when the Trending tab is active
+  // Load trending when the Trending tab is active - FUNÇÃO ATUALIZADA
   const loadTrending = async () => {
     try {
       setTrendingLoading(true);
       setLeaderboardLoading(true);
 
-      // Primary source: server trending public capsules
+      // Buscar cápsulas públicas trending
       const res = await communityAPI.explorePublic({ sort: 'trending', limit: 50 });
       let capsules = res.data?.capsules || [];
+      
+      console.log('📊 Trending capsules loaded:', capsules.length);
       setTrendingCapsules(capsules);
 
       if (!capsules || capsules.length === 0) {
-        // fallback to recent public capsules
         const fallback = await communityAPI.explorePublic({ sort: 'recent', limit: 50 });
         capsules = fallback.data?.capsules || [];
         setTrendingCapsules(capsules);
       }
 
-      // Try server-side trending techs; if empty compute locally from capsules
+      // Carregar trending techs
       try {
         const techRes = await communityAPI.getTrendingTechs();
         const techs = techRes.data?.trending || [];
-        if (!techs || techs.length === 0) {
+        if (techs.length === 0) {
           const computed = computeTrendingTagsFromCapsules(capsules);
-          console.log('Fallback: computed trending techs from fetched capsules', computed);
           setTrendingTechs(computed);
         } else {
           setTrendingTechs(techs);
         }
       } catch (err) {
-        console.error('Erro ao carregar tecnologias em alta:', err);
+        console.error('Error loading trending techs:', err);
         setTrendingTechs(computeTrendingTagsFromCapsules(capsules));
       }
 
-      // Try server-side leaderboard; if empty compute locally from capsules
+      // Carregar leaderboard
       try {
         const lbRes = await communityAPI.getLeaderboard({ type: 'capsules' });
         const lb = lbRes.data?.leaderboard || [];
-        if (!lb || lb.length === 0) {
+        if (lb.length === 0) {
           const computedLb = computeLeaderboardFromCapsules(capsules);
-          console.log('Fallback: computed leaderboard from fetched capsules', computedLb);
           setLeaderboardData(computedLb);
         } else {
           setLeaderboardData(lb);
         }
       } catch (err) {
-        console.error('Erro ao carregar leaderboard:', err);
+        console.error('Error loading leaderboard:', err);
         setLeaderboardData(computeLeaderboardFromCapsules(capsules));
       }
 
     } catch (err) {
-      console.error('Erro ao carregar trending (Dashboard):', err);
+      console.error('Error loading trending:', err);
     } finally {
       setTrendingLoading(false);
       setLeaderboardLoading(false);
@@ -668,7 +777,7 @@ useEffect(() => {
 
   useEffect(() => {
     filterAndSortCapsules();
-  }, [capsules, filter, searchTerm, sortBy, showFavoritesOnly, currentTime]);
+  }, [capsules, filter, searchTerm, sortBy, showFavoritesOnly, currentTime, capsuleScope]);
 
   const filterAndSortCapsules = () => {
     let filtered = [...capsules];
@@ -708,10 +817,10 @@ useEffect(() => {
       setCategoryName('');
       setCategoryColor('#e2b714');
       setShowCategoryForm(false);
-      toast.success(t('dashboard.categoryCreateSuccess'));
+      showToast('✅ Categoria criada com sucesso!', 'success');
     } catch (error) {
       console.error('Error creating category:', error);
-      toast.error(t('dashboard.categoryCreateError', { error: error.response?.data?.message || error.message }));
+      showToast('❌ Erro ao criar categoria: ' + (error.response?.data?.message || error.message), 'error');
     }
   };
 
@@ -723,10 +832,10 @@ useEffect(() => {
       setTags(res.data.tags || []);
       setTagName('');
       setShowTagForm(false);
-      toast.success(t('dashboard.tagCreateSuccess'));
+      showToast('✅ Tag criada com sucesso!', 'success');
     } catch (error) {
       console.error('Error creating tag:', error);
-      toast.error(t('dashboard.tagCreateError', { error: error.response?.data?.message || error.message }));
+      showToast('❌ Erro ao criar tag: ' + (error.response?.data?.message || error.message), 'error');
     }
   };
 
@@ -757,11 +866,11 @@ useEffect(() => {
       setShowDeleteConfirm(false);
       setCapsuleToDelete(null);
       if (selectedCapsule?.id === capsuleId) setSelectedCapsule(null);
-      toast.success(t('dashboard.deleteSuccess'));
+      showToast('Cápsula eliminada com sucesso!', 'success');
     } catch (error) {
       console.error('Error deleting capsule:', error);
-      const message = (error?.response?.data?.message) || error?.message || t('dashboard.deleteError');
-      toast.error(message);
+      const message = (error?.response?.data?.message) || error?.message || 'Erro ao eliminar cápsula';
+      showToast(message, 'error');
       if (error?.response?.status === 401) {
         navigate('/login');
       }
@@ -783,11 +892,33 @@ useEffect(() => {
         c.id === id ? { ...c, isFavorited: fav } : c
       ));
       
-      toast.success(fav ? t('dashboard.addedToFavorites') : t('dashboard.removedFromFavorites'));
+      showToast(fav ? '⭐ Adicionado aos favoritos!' : '⭐ Removido dos favoritos!', 'success');
     } catch (error) {
       console.error('Error toggling favorite:', error);
       setCapsules(prev => prev.map(c => 
         c.id === id ? { ...c, isFavorited: !(c.isFavorited) } : c
+      ));
+    }
+  };
+
+  const toggleFollowCapsule = async (id) => {
+    try {
+      setCapsules(prev => prev.map(c => 
+        c.id === id ? { ...c, isFollowing: !c.isFollowing } : c
+      ));
+
+      const res = await followCapsuleAPI.toggle(id);
+      const following = res.data.following;
+
+      setCapsules(prev => prev.map(c => 
+        c.id === id ? { ...c, isFollowing: following, followers: following ? (c.followers || 0) + 1 : Math.max((c.followers || 1) - 1, 0) } : c
+      ));
+      
+      showToast(following ? '👁️ A seguir a cápsula!' : '👁️ Deixou de seguir!', 'success');
+    } catch (error) {
+      console.error('Error toggling follow:', error);
+      setCapsules(prev => prev.map(c => 
+        c.id === id ? { ...c, isFollowing: !(c.isFollowing) } : c
       ));
     }
   };
@@ -807,10 +938,10 @@ useEffect(() => {
           : c
       ));
       setCommentText('');
-      toast.success(t('dashboard.commentAdded'));
+      showToast('💬 Comentário adicionado!', 'success');
     } catch (error) {
       console.error('Error adding comment:', error);
-      toast.error(t('dashboard.commentError'));
+      showToast('❌ Erro ao adicionar comentário', 'error');
     }
   };
 
@@ -824,10 +955,10 @@ useEffect(() => {
           ? { ...c, likes: count, viewCount: (c.viewCount || 0) + 1 }
           : c
       ));
-      toast.success(t('dashboard.likeUpdated'));
+      showToast('❤️ Gosto atualizado!', 'success');
     } catch (error) {
       console.error('Error toggling like:', error);
-      toast.error(t('dashboard.likeError'));
+      showToast('❌ Erro ao atualizar gosto', 'error');
     }
   };
 
@@ -857,8 +988,29 @@ useEffect(() => {
   };
 
   const goToUserProfile = () => {
-    if (user?.id) {
-      navigate(`/profile/${user.id}`);
+    let userId = user?.id || user?.userId;
+    
+    // Fallback: tenta carregar do localStorage se user estiver undefined
+    if (!userId) {
+      try {
+        const savedUser = localStorage.getItem('user');
+        if (savedUser) {
+          const parsedUser = JSON.parse(savedUser);
+          userId = parsedUser?.id || parsedUser?.userId;
+          console.log('🔍 UserId carregado do localStorage:', userId);
+        }
+      } catch (err) {
+        console.error('Erro ao carregar user do localStorage:', err);
+      }
+    }
+    
+    console.log('🔍 goToUserProfile - user:', user, 'userId:', userId);
+    
+    if (userId) {
+      navigate(`/profile/${userId}`);
+    } else {
+      console.warn('⚠️ userId não encontrado:', user);
+      toast.error('Não foi possível carregar o perfil do utilizador');
     }
   };
 
@@ -1058,10 +1210,10 @@ useEffect(() => {
             </div>
           </div>
           <img
-  src="/logo capsula.png" 
-  alt="Time Chronicle Logo"
-  className="header-logo"
-/>
+            src="/logo capsula.png" 
+            alt="Time Chronicle Logo"
+            className="header-logo"
+          />
         </div>
         
         <div className="header-right" style={{ position: 'relative', zIndex: 1000 }}>
@@ -1076,7 +1228,7 @@ useEffect(() => {
             </div>
           </div>
           
-          {/*  LanguageSelector CORRETAMENTE POSICIONADO */}
+          {/* LanguageSelector CORRETAMENTE POSICIONADO */}
           <div style={{ position: 'relative', zIndex: 10000 }}>
             <LanguageSelector />
           </div>
@@ -1101,7 +1253,7 @@ useEffect(() => {
           
           <div className="user-info">
             <div className="notifications">
-              <button className="notif-btn" onClick={() => setActiveTab('notifications')}>
+              <button className="notif-btn" style={{ animation: 'none !important' }} onClick={() => setActiveTab('notifications')}>
                 🔔 {notifications.filter(n => !n.read).length}
               </button>
               <button className="btn-schedule" onClick={() => setShowScheduleModal(true)}>
@@ -1109,22 +1261,9 @@ useEffect(() => {
                 {t('dashboard.scheduleReminder')}
               </button>
             </div>
-          <div className="user-avatar" onClick={goToUserProfile} style={{ cursor: 'pointer' }} title={t('dashboard.viewProfile')}>
-  <img
-    src={user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.id || 'user'}`}
-    alt={user?.username || 'User'}
-    style={{ 
-      width: '100%', 
-      height: '100%', 
-      borderRadius: '50%', 
-      objectFit: 'cover' 
-    }}
-    onError={(e) => { 
-      e.target.onerror = null; 
-      e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.id || 'default'}`; 
-    }}
-  />
-</div>
+            <div className="user-avatar" style={{ cursor: 'pointer' }} title={t('dashboard.viewProfile')} onClick={goToUserProfile}>
+              <UserAvatar key={user?.avatar || user?.id} user={user} size="medium" />
+            </div>
             <div className="user-details">
               <span className="user-name">{user?.username || 'User'}</span>
               <span className="user-role">{t('dashboard.timeTraveler')}</span>
@@ -1289,10 +1428,10 @@ useEffect(() => {
             >
               <div className="card-header">
                 <h2>
-                  {capsuleScope === 'mine' ? t('dashboard.myCapsules') : t('dashboard.publicCapsules')}
+                  {capsuleScope === 'mine' ? t('dashboard.myCapsules') : capsuleScope === 'myPublic' ? t('dashboard.myPublicCapsules') : t('dashboard.followingCapsules')}
                 </h2>
                 <div className="card-actions">
-                  {/* Toggle entre Minhas Cápsulas e Cápsulas Públicas */}
+                  {/* Toggle entre Minhas Cápsulas, Minhas Públicas e Seguindo */}
                   <div className="scope-toggle" style={{ marginRight: '12px' }}>
                     <button 
                       className={`scope-btn ${capsuleScope === 'mine' ? 'active' : ''}`}
@@ -1301,19 +1440,20 @@ useEffect(() => {
                       {t('dashboard.mine')}
                     </button>
                     <button 
-                      className={`scope-btn ${capsuleScope === 'public' ? 'active' : ''}`}
-                      onClick={() => setCapsuleScope('public')}
+                      className={`scope-btn ${capsuleScope === 'myPublic' ? 'active' : ''}`}
+                      onClick={() => setCapsuleScope('myPublic')}
                     >
-                      {t('dashboard.public')}
+                      Minhas Públicas
+                    </button>
+                    <button 
+                      className={`scope-btn ${capsuleScope === 'following' ? 'active' : ''}`}
+                      onClick={() => setCapsuleScope('following')}
+                    >
+                      A Seguir
                     </button>
                   </div>
                   
-                  <button
-                    onClick={() => navigate('/create')}
-                    className="chronicle-button"
-                  >
-                    {t('dashboard.newCapsule')}
-                  </button>
+
                   <div className="search-container">
                     <svg className="search-icon" viewBox="0 0 24 24">
                       <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
@@ -1425,7 +1565,7 @@ useEffect(() => {
                         />
                       </div>
                       
-                      {/* NOVO: Toggle Público/Privado */}
+                      {/*  Toggle Público/Privado */}
                       <div className="form-group full-width">
                         <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
                           <input
@@ -1499,39 +1639,47 @@ useEffect(() => {
                 </motion.div>
               )}
               
-              {/* Lista de Cápsulas */}
-              <div className="capsules-grid">
-                {filteredCapsules.length === 0 && (
-                  <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
-                    <p>
-                      {capsuleScope === 'mine' 
-                        ? t('dashboard.noCapsules')
-                        : t('dashboard.noPublicCapsules')
-                      }
-                    </p>
-                  </div>
-                )}
-                {filteredCapsules.map((capsule) => {
-                  const isMyOwnCapsule = capsule.creatorId === user?.id;
-                  const localUnlocked = capsule.isUnlocked || new Date(capsule.unlockDate) <= currentTime;
-                  
-                  return (
-                    <div 
-                      key={capsule.id} 
-                      className={`capsule-card ${recentlyUnlocked.includes(capsule.id) ? 'unlocked-anim' : ''}`}
-                      style={{ borderLeftColor: capsule.color }}
-                      onClick={() => setSelectedCapsule(capsule)}
-                    >
+              {/* 🔥 SECÇÃO CORRIGIDA DO DASHBOARD.jsx */}
+              {/* Lista de Cápsulas com Paginação */}
+              {filteredCapsules.length === 0 ? (
+                <EmptyState 
+                  icon="📭"
+                  title={capsuleScope === 'mine' ? 'Nenhuma cápsula criada' : 'Nenhuma cápsula disponível'}
+                  description={capsuleScope === 'mine' 
+                    ? 'Comece a criar sua primeira cápsula do tempo e preserve as suas memórias!'
+                    : 'Não existem cápsulas para mostrar neste momento.'
+                  }
+                  action={capsuleScope !== 'following' ? () => navigate('/create') : null}
+                  actionLabel={capsuleScope !== 'following' ? 'Criar Cápsula' : ''}
+                  actionIcon={capsuleScope !== 'following' ? '' : ''}
+                />
+              ) : (
+                <div className="capsules-grid-wrapper">
+                  <Pagination
+                    items={filteredCapsules}
+                    itemsPerPage={10}
+                    renderItem={(capsule) => {
+                      const currentUserId = String(user?.id || user?.userId || '');
+                      const capsuleCreatorId = String(capsule.creatorId || '');
+                      const isMyOwnCapsule = currentUserId === capsuleCreatorId;
+                      const localUnlocked = capsule.isUnlocked || new Date(capsule.unlockDate) <= currentTime;
+                      
+                      return (
+                        <div 
+                          key={capsule.id} 
+                          className={`capsule-card ${recentlyUnlocked.includes(capsule.id) ? 'unlocked-anim' : ''}`}
+                          style={{ borderLeftColor: capsule.color }}
+                          onClick={() => setSelectedCapsule(capsule)}
+                        >
                       <div className="capsule-header">
                         <div className="capsule-icon">
-                          <img
-                            src={capsule.metadata?.authorAvatar}
-                            alt={`Avatar de ${capsule.metadata?.author}`}
-                            className="avatar avatar-sm"
-                            onError={(e) => { 
-                              e.target.onerror = null; 
-                              e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${capsule.creatorId || capsule.creator?.id || 'user'}`; 
+                          <UserAvatar 
+                            user={{
+                              id: capsule.creatorId,
+                              username: capsule.metadata?.author,
+                              avatar: capsule.metadata?.authorAvatar
                             }}
+                            size="small"
                           />
                         </div>
                         <div className="capsule-info">
@@ -1541,12 +1689,23 @@ useEffect(() => {
                             {isMyOwnCapsule && ` (${t('common.you')})`}
                           </span>
                         </div>
+                        {/* 🔥 BOTÃO DE FAVORITO: Apenas para MINHAS cápsulas */}
                         {isMyOwnCapsule && (
                           <button
                             onClick={(e) => { e.stopPropagation(); toggleFavorite(capsule.id); }}
                             className={`favorite-btn ${(capsule.isFavorited || capsule.isFavorite) ? 'active' : ''}`}
                           >
                             {(capsule.isFavorited || capsule.isFavorite) ? '★' : '☆'}
+                          </button>
+                        )}
+                        {/*  BOTÃO DE SEGUIMENTO: Para cápsulas de outros */}
+                        {!isMyOwnCapsule && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); toggleFollowCapsule(capsule.id); }}
+                            className={`follow-btn ${capsule.isFollowing ? 'active' : ''}`}
+                            title={capsule.isFollowing ? 'Deixar de seguir' : 'Seguir'}
+                          >
+                            {capsule.isFollowing ? '👁️' : '👁️‍🗨️'}
                           </button>
                         )}
                       </div>
@@ -1585,6 +1744,12 @@ useEffect(() => {
                           <span>{t('dashboard.likes')}:</span>
                           <strong>{capsule.likes || 0}</strong>
                         </div>
+                        {isMyOwnCapsule && (
+                          <div className="detail">
+                            <span>👁️ {t('dashboard.followers')}:</span>
+                            <strong>{capsule.followers || 0}</strong>
+                          </div>
+                        )}
                       </div>
                       
                       {localUnlocked && (
@@ -1593,6 +1758,7 @@ useEffect(() => {
                         </div>
                       )}
                       
+                      {/* 🔥 AÇÕES: Apenas para MINHAS cápsulas */}
                       {isMyOwnCapsule && (
                         <div className="capsule-actions">
                           <button
@@ -1618,10 +1784,12 @@ useEffect(() => {
                           </button>
                         </div>
                       )}
-                    </div>
-                  );
-                })}
-              </div>
+                        </div>
+                      );
+                    }}
+                  />
+                </div>
+              )}
             </motion.div>
           )}
           
@@ -1853,7 +2021,7 @@ useEffect(() => {
             </motion.div>
           )}
           
-          {/* Trending - ESTILO ATUALIZADO */}
+          {/* Trending - COM AVATARES CORRIGIDOS */}
           {activeTab === 'trending' && (
             <motion.div 
               initial={{ opacity: 0, y: 20 }} 
@@ -1873,18 +2041,20 @@ useEffect(() => {
                       <span className="trend-category">{t('dashboard.development')}</span>
                     </div>
                     <div className="trend-stats">
-                      <div className={`trend-growth ${trendingTech.length > 0 ? 'positive' : ''}`}>
-                        {trendingTech.length > 0 ? '📈 +24%' : '--'}
+                      <div className={`trend-growth ${trendingTechs.length > 0 ? 'positive' : ''}`}>
+                        {trendingTechs.length > 0 ? '📈 +24%' : '--'}
                       </div>
                     </div>
                   </div>
                   
                   <div style={{ marginTop: '20px' }}>
-                    {trendingTech.length === 0 ? (
+                    {trendingLoading ? (
                       <p style={{ color: '#94a3b8', textAlign: 'center' }}>{t('dashboard.loadingTrends')}</p>
+                    ) : trendingTechs.length === 0 ? (
+                      <p style={{ color: '#94a3b8', textAlign: 'center' }}>{t('dashboard.noTrendsAvailable')}</p>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                        {trendingTech.slice(0, 3).map((tech, index) => (
+                        {trendingTechs.slice(0, 3).map((tech, index) => (
                           <div key={tech.id || index} style={{ 
                             display: 'flex', 
                             alignItems: 'center', 
@@ -1924,7 +2094,7 @@ useEffect(() => {
                                   padding: '2px 8px',
                                   borderRadius: '10px'
                                 }}>
-                                  {tech.count || '0'} {t('dashboard.capsules')}
+                                  {tech.mentions || tech.count || '0'} {t('dashboard.capsules')}
                                 </span>
                               </div>
                               <div style={{ fontSize: '12px', color: '#94a3b8' }}>
@@ -1939,15 +2109,15 @@ useEffect(() => {
                   
                   <div className="trend-metrics">
                     <div className="metric">
-                      <span className="metric-value">{trendingTech.length}</span>
+                      <span className="metric-value">{trendingTechs.length}</span>
                       <span className="metric-label">{t('dashboard.technologies')}</span>
                     </div>
                     <div className="metric">
-                      <span className="metric-value">{communityStats?.totalPublicCapsules || 0}</span>
+                      <span className="metric-value">{trendingCapsules.length}</span>
                       <span className="metric-label">{t('dashboard.capsules')}</span>
                     </div>
                     <div className="metric">
-                      <span className="metric-value">{communityStats?.totalUsers || 0}</span>
+                      <span className="metric-value">{leaderboardData.length}</span>
                       <span className="metric-label">{t('dashboard.users')}</span>
                     </div>
                   </div>
@@ -1974,29 +2144,38 @@ useEffect(() => {
                       <span>{t('dashboard.points')}</span>
                     </div>
                     <div className="leaderboard-list-modern">
-                      {leaderboard.length === 0 ? (
+                      {leaderboardLoading ? (
                         <div style={{ padding: '30px', textAlign: 'center', color: '#94a3b8' }}>
                           {t('dashboard.loadingLeaderboard')}
                         </div>
+                      ) : leaderboardData.length === 0 ? (
+                        <div style={{ padding: '30px', textAlign: 'center', color: '#94a3b8' }}>
+                          {t('dashboard.noLeaderboardData')}
+                        </div>
                       ) : (
-                        leaderboard.slice(0, 5).map((user, index) => (
-                          <div key={user.id} className="leaderboard-item-modern">
+                        leaderboardData.slice(0, 5).map((user, index) => (
+                          <div key={user.creatorId || user.id} className="leaderboard-item-modern">
                             <div className="leaderboard-rank">
                               <span className={`${index < 3 ? 'top-rank' : ''}`}>
                                 #{index + 1}
                               </span>
                             </div>
                             <div className="leaderboard-user-modern">
-                              <div className="user-avatar-modern">
-                                {user.username?.substring(0, 2).toUpperCase() || 'US'}
-                              </div>
+                              <UserAvatar 
+                                user={{
+                                  id: user.userId || user.creatorId,
+                                  username: user.user?.username || user.username,
+                                  avatar: user.user?.avatar || user.avatar
+                                }}
+                                size="small"
+                              />
                               <div className="user-info-modern">
-                                <strong>{user.username}</strong>
-                                <span>{user.bio || t('dashboard.timeExplorer')}</span>
+                                <strong>{user.user?.username || user.username}</strong>
+                                <span>{user.user?.bio || user.bio || t('dashboard.timeExplorer')}</span>
                               </div>
                             </div>
                             <div className="leaderboard-capsules">
-                              {user.capsuleCount || 0}
+                              {user.totalCapsules || user.capsuleCount || 0}
                             </div>
                             <div className="leaderboard-score">
                               {user.score || 0}
@@ -2019,29 +2198,38 @@ useEffect(() => {
                     <span>{t('dashboard.score')}</span>
                   </div>
                   <div className="leaderboard-list-modern">
-                    {leaderboard.length === 0 ? (
+                    {leaderboardLoading ? (
+                      <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
+                        {t('dashboard.loadingLeaderboard')}
+                      </div>
+                    ) : leaderboardData.length === 0 ? (
                       <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
                         {t('dashboard.noDataAvailable')}
                       </div>
                     ) : (
-                      leaderboard.map((user, index) => (
-                        <div key={user.id} className="leaderboard-item-modern">
+                      leaderboardData.map((user, index) => (
+                        <div key={user.creatorId || user.id} className="leaderboard-item-modern">
                           <div className="leaderboard-rank">
                             <span className={`${index < 3 ? 'top-rank' : ''}`}>
                               #{index + 1}
                             </span>
                           </div>
                           <div className="leaderboard-user-modern">
-                            <div className="user-avatar-modern">
-                              {user.username?.substring(0, 2).toUpperCase() || 'US'}
-                            </div>
+                            <UserAvatar 
+                              user={{
+                                id: user.userId || user.creatorId,
+                                username: user.user?.username || user.username,
+                                avatar: user.user?.avatar || user.avatar
+                              }}
+                              size="small"
+                            />
                             <div className="user-info-modern">
-                              <strong>{user.username}</strong>
-                              <span>{user.bio || t('dashboard.communityMember')}</span>
+                              <strong>{user.user?.username || user.username}</strong>
+                              <span>{user.user?.bio || user.bio || t('dashboard.communityMember')}</span>
                             </div>
                           </div>
                           <div className="leaderboard-capsules">
-                            {user.capsuleCount || 0}
+                            {user.totalCapsules || user.capsuleCount || 0}
                           </div>
                           <div className="leaderboard-score">
                             {user.score || 0}
@@ -2167,11 +2355,14 @@ useEffect(() => {
               <div className="capsule-detail">
                 <div className="detail-header">
                   <div className="detail-avatar">
-                    <img
-                      src={selectedCapsule.metadata?.authorAvatar}
-                      alt={`Avatar de ${selectedCapsule.metadata?.author}`}
-                      className="avatar avatar-lg"
-                      onError={(e) => { e.target.onerror = null; e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedCapsule.creatorId || selectedCapsule.creator?.id || 'user'}`; }}
+                    <UserAvatar 
+                      user={{
+                        id: selectedCapsule.creatorId,
+                        username: selectedCapsule.metadata?.author,
+                        avatar: selectedCapsule.metadata?.authorAvatar
+                      }}
+                      size="large"
+                      showName={true}
                     />
                   </div>
                   <div>

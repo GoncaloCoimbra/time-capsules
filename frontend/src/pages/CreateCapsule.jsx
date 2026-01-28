@@ -14,7 +14,7 @@ import { capsuleAPI, categoryAPI } from '../services/capsuleService';
 import toast from 'react-hot-toast';
 import '../pages/Dashboard.css';
 
-// Register a small set of common languages — editor now supports multiple languages
+// Register languages
 SyntaxHighlighter.registerLanguage('javascript', js);
 SyntaxHighlighter.registerLanguage('python', python);
 SyntaxHighlighter.registerLanguage('java', java);
@@ -26,11 +26,12 @@ export default function CreateCapsule() {
   const navigate = useNavigate();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [codeSnippet, setCodeSnippet] = useState('// Write any code here — supports any language');
+  const [codeSnippet, setCodeSnippet] = useState('// Write your code here\nconsole.log("Hello Future Me!");\n\nfunction timeCapsule() {\n  return "This will be unlocked in the future!";\n}');
   const [language, setLanguage] = useState('javascript');
   const [unlockDate, setUnlockDate] = useState('');
   const [isPrivate, setIsPrivate] = useState(true);
   const [color, setColor] = useState('#e2b714');
+  const [selectedCategory, setSelectedCategory] = useState('');
   const [showSealModal, setShowSealModal] = useState(false);
   const [sealing, setSealing] = useState(false);
   const [categories, setCategories] = useState([]);
@@ -40,9 +41,16 @@ export default function CreateCapsule() {
       try {
         const res = await categoryAPI.getAll();
         setCategories(res.data.categories || []);
-      } catch (err) { /* ignore */ }
+      } catch (err) { 
+        console.warn('Could not load categories:', err);
+      }
     };
     load();
+    
+    // Set default unlock date to 1 year from now
+    const defaultDate = new Date();
+    defaultDate.setFullYear(defaultDate.getFullYear() + 1);
+    setUnlockDate(defaultDate.toISOString().slice(0, 16));
   }, []);
 
   const handleCreate = async () => {
@@ -55,20 +63,33 @@ export default function CreateCapsule() {
         isPrivate,
         color,
         codeSnippet,
-        language
+        language,
+        categoryId: selectedCategory
       };
 
       const res = await capsuleAPI.create(payload);
       const newId = res.data?.capsule?.id || res.data?.id || null;
 
-      toast.success('Cápsula criada e selada! 🎉');
-      // animation sequence: navigate back with newId to trigger timeline drop animation
+      toast.success('Cápsula criada e selada com sucesso! 🎉', {
+        duration: 4000,
+        position: 'top-right',
+        style: {
+          background: '#0f172a',
+          color: '#e2b714',
+          border: '1px solid #e2b714'
+        }
+      });
+      
+      // Navigate back to dashboard after animation
       setTimeout(() => {
         navigate(`/dashboard${newId ? `?newId=${newId}` : ''}`);
       }, 800);
     } catch (err) {
-      console.error(err);
-      alert('Erro ao criar cápsula: ' + (err?.response?.data?.message || err.message));
+      console.error('Erro ao criar cápsula:', err);
+      toast.error('Erro ao criar cápsula: ' + (err?.response?.data?.message || err.message), {
+        duration: 5000,
+        position: 'top-right'
+      });
     } finally {
       setSealing(false);
       setShowSealModal(false);
@@ -76,60 +97,134 @@ export default function CreateCapsule() {
   };
 
   const handleSealComplete = () => {
-    // After countdown, create capsule
     handleCreate();
+  };
+
+  // Countdown renderer
+  const renderCountdown = ({ seconds, completed }) => {
+    if (completed) {
+      return <span>Selando...</span>;
+    } else {
+      return <span>{seconds}s</span>;
+    }
   };
 
   return (
     <div className="create-capsule-page">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="chronicle-card main-card">
-          <div className="card-header">
-          <h2>✨ Criar Cápsula Épica</h2>
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }} 
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="chronicle-card main-card"
+      >
+        <div className="card-header">
+          <h2>✨ Criar Nova Cápsula do Tempo</h2>
           <div className="card-actions">
-            <button onClick={() => navigate('/dashboard')} className="btn-secondary">Cancelar</button>
+            <button onClick={() => navigate('/dashboard')} className="btn-secondary">
+              <i className="fas fa-arrow-left"></i> Cancelar
+            </button>
           </div>
         </div>
 
         <form onSubmit={(e) => { e.preventDefault(); setShowSealModal(true); }}>
           <div className="form-grid">
             <div className="form-group">
-              <label>Título</label>
-              <input value={title} onChange={(e) => setTitle(e.target.value)} className="chronicle-input" required />
+              <label>
+                <i className="fas fa-heading"></i> Título
+              </label>
+              <input 
+                value={title} 
+                onChange={(e) => setTitle(e.target.value)} 
+                className="chronicle-input" 
+                placeholder="Dê um título épico à sua cápsula"
+                required 
+              />
             </div>
 
             <div className="form-group">
-              <label>Data de Desbloqueio</label>
-              <input type="datetime-local" value={unlockDate} onChange={(e) => setUnlockDate(e.target.value)} className="chronicle-input" required />
+              <label>
+                <i className="fas fa-calendar-alt"></i> Data de Desbloqueio
+              </label>
+              <input 
+                type="datetime-local" 
+                value={unlockDate} 
+                onChange={(e) => setUnlockDate(e.target.value)} 
+                className="chronicle-input" 
+                required 
+              />
+              <small style={{ color: '#94a3b8', display: 'block', marginTop: '4px' }}>
+                Escolha uma data no futuro
+              </small>
             </div>
 
             <div className="form-group full-width">
-              <label>Mensagem para o eu do futuro</label>
-              <textarea value={content} onChange={(e) => setContent(e.target.value)} rows={4} className="chronicle-input" />
+              <label>
+                <i className="fas fa-envelope-open-text"></i> Mensagem para o eu do futuro
+              </label>
+              <textarea 
+                value={content} 
+                onChange={(e) => setContent(e.target.value)} 
+                rows={4} 
+                className="chronicle-input" 
+                placeholder="Escreva uma mensagem para você mesmo no futuro..."
+              />
             </div>
 
             <div className="form-group full-width">
-              <label>Editor de Código</label>
-              <div style={{ display: 'flex', gap: '12px' }}>
+              <label>
+                <i className="fas fa-code"></i> Editor de Código
+              </label>
+              <div className="language-selector">
+                <select 
+                  value={language} 
+                  onChange={(e) => setLanguage(e.target.value)} 
+                  className="chronicle-input" 
+                  style={{ maxWidth: 220 }}
+                >
+                  <option value="javascript">JavaScript</option>
+                  <option value="python">Python</option>
+                  <option value="java">Java</option>
+                  <option value="bash">Bash/Shell</option>
+                  <option value="go">Go</option>
+                  <option value="json">JSON</option>
+                  <option value="text">Texto Simples</option>
+                </select>
+                <span className="tag" style={{ background: 'rgba(226, 183, 20, 0.1)', color: '#e2b714' }}>
+                  {language.toUpperCase()}
+                </span>
+              </div>
+              
+              <div className="code-editor-container">
                 <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                    <select value={language} onChange={(e) => setLanguage(e.target.value)} className="chronicle-input" style={{ maxWidth: 220 }}>
-                      <option value="javascript">JavaScript</option>
-                      <option value="python">Python</option>
-                      <option value="java">Java</option>
-                      <option value="bash">Bash</option>
-                      <option value="go">Go</option>
-                      <option value="json">JSON</option>
-                      <option value="text">Plain Text</option>
-                    </select>
-                    <div style={{ color: '#94a3b8', fontSize: 12 }}>Linguagem</div>
-                  </div>
-                  <textarea value={codeSnippet} onChange={(e) => setCodeSnippet(e.target.value)} rows={8} className="chronicle-input" style={{ width: '100%' }} />
+                  <textarea 
+                    value={codeSnippet} 
+                    onChange={(e) => setCodeSnippet(e.target.value)} 
+                    rows={12} 
+                    className="chronicle-input code-textarea"
+                    placeholder="Escreva seu código aqui..."
+                  />
                 </div>
 
-                <div style={{ width: '40%', background: '#0f172a', borderRadius: 8, padding: 8 }}>
-                  <div style={{ color: '#94a3b8', fontSize: 12, marginBottom: 6 }}>{language}</div>
-                  <div style={{ maxHeight: 260, overflow: 'auto' }}>
-                    <SyntaxHighlighter language={language === 'text' ? null : language} style={atomOneDark} customStyle={{ margin: 0, borderRadius: 6 }}>
+                <div className="code-preview">
+                  <div className="code-preview-header">
+                    <h4>
+                      <i className="fas fa-eye"></i> Pré-visualização
+                    </h4>
+                    <span className="preview-badge">
+                      <i className="fas fa-code"></i> {language}
+                    </span>
+                  </div>
+                  <div className="code-preview-content">
+                    <SyntaxHighlighter 
+                      language={language === 'text' ? null : language} 
+                      style={atomOneDark} 
+                      customStyle={{ 
+                        margin: 0, 
+                        borderRadius: 8,
+                        fontSize: '13px',
+                        background: 'transparent'
+                      }}
+                    >
                       {codeSnippet}
                     </SyntaxHighlighter>
                   </div>
@@ -138,63 +233,294 @@ export default function CreateCapsule() {
             </div>
 
             <div className="form-group">
-              <label>Cor</label>
-              <input type="color" value={color} onChange={(e) => setColor(e.target.value)} className="color-input" />
-            </div>
-
-            <div className="form-group">
-              <label>Visibilidade</label>
-              <div>
-                <label style={{ marginRight: 8 }}><input type="radio" checked={isPrivate} onChange={() => setIsPrivate(true)} /> Privada</label>
-                <label><input type="radio" checked={!isPrivate} onChange={() => setIsPrivate(false)} /> Pública</label>
+              <label>
+                <i className="fas fa-palette"></i> Cor da Cápsula
+              </label>
+              <div className="color-picker-container">
+                <div 
+                  className="color-preview" 
+                  style={{ background: color }}
+                  title="Cor selecionada"
+                ></div>
+                <input 
+                  type="color" 
+                  value={color} 
+                  onChange={(e) => setColor(e.target.value)} 
+                  className="color-input" 
+                  title="Selecionar cor"
+                />
               </div>
             </div>
 
             <div className="form-group">
-              <label>Categoria</label>
-              <select className="chronicle-input">
-                <option value="">— Selecionar —</option>
-                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              <label>
+                <i className="fas fa-eye"></i> Visibilidade
+              </label>
+              <div className="radio-group">
+                <div 
+                  className={`radio-option ${isPrivate ? 'selected' : ''}`}
+                  onClick={() => setIsPrivate(true)}
+                >
+                  <input 
+                    type="radio" 
+                    checked={isPrivate} 
+                    onChange={() => setIsPrivate(true)} 
+                  />
+                  <i className="fas fa-lock"></i>
+                  <span>Privada</span>
+                  <small style={{ color: '#94a3b8', fontSize: '12px' }}>Só você</small>
+                </div>
+                <div 
+                  className={`radio-option ${!isPrivate ? 'selected' : ''}`}
+                  onClick={() => setIsPrivate(false)}
+                >
+                  <input 
+                    type="radio" 
+                    checked={!isPrivate} 
+                    onChange={() => setIsPrivate(false)} 
+                  />
+                  <i className="fas fa-globe"></i>
+                  <span>Pública</span>
+                  <small style={{ color: '#94a3b8', fontSize: '12px' }}>Comunidade</small>
+                </div>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>
+                <i className="fas fa-tags"></i> Categoria
+              </label>
+              <select 
+                value={selectedCategory} 
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="chronicle-input"
+              >
+                <option value="">— Selecionar Categoria —</option>
+                {categories.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
               </select>
+              {categories.length === 0 && (
+                <div className="no-categories">
+                  <small>Nenhuma categoria disponível</small>
+                  <button type="button" className="link-btn">
+                    <i className="fas fa-plus"></i> Criar nova categoria
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
-            <div className="form-actions" style={{ marginTop: 18 }}>
-            <button type="submit" className="chronicle-button" disabled={sealing || !unlockDate || !title}>Pré-visualizar e Selar</button>
-            <button type="button" onClick={() => navigate('/dashboard')} className="btn-secondary">Voltar</button>
+          <div className="form-actions">
+            <button 
+              type="submit" 
+              className="chronicle-button" 
+              disabled={sealing || !unlockDate || !title}
+            >
+              <i className="fas fa-seal"></i> Pré-visualizar e Selar Cápsula
+            </button>
+            <button 
+              type="button" 
+              onClick={() => navigate('/dashboard')} 
+              className="btn-secondary"
+            >
+              <i className="fas fa-times"></i> Cancelar
+            </button>
           </div>
         </form>
       </motion.div>
 
       {showSealModal && (
         <div className="modal-overlay">
-          <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="modal-card">
-            <h3>Pré-visualização e Selar</h3>
-            <p style={{ color: '#94a3b8' }}>Confirma os dados e selaremos a cápsula. A animação terminará em 5s.</p>
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            transition={{ type: 'spring', damping: 25 }}
+            className="modal-card"
+          >
+            <h3>🔒 Selar Cápsula do Tempo</h3>
+            <p style={{ color: '#94a3b8', marginBottom: '24px' }}>
+              Confirme os dados abaixo. Sua cápsula será selada em 5 segundos.
+            </p>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 200px', gap: 12 }}>
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: '1fr 280px', 
+              gap: '24px',
+              marginBottom: '30px'
+            }}>
               <div>
-                <h4 style={{ marginBottom: 6 }}>{title}</h4>
-                <p style={{ color: '#cbd5e1' }}>{content}</p>
-                <div style={{ marginTop: 8 }}>
-                  <SyntaxHighlighter language={language} style={atomOneDark} customStyle={{ borderRadius: 6 }}>
-                    {codeSnippet}
-                  </SyntaxHighlighter>
+                <div style={{ 
+                  background: 'rgba(30, 41, 59, 0.5)', 
+                  borderRadius: '12px', 
+                  padding: '20px',
+                  border: '1px solid rgba(226, 183, 20, 0.2)'
+                }}>
+                  <h4 style={{ 
+                    color: '#e2b714', 
+                    marginBottom: '12px',
+                    fontSize: '18px'
+                  }}>
+                    <i className="fas fa-capsules"></i> {title}
+                  </h4>
+                  
+                  {content && (
+                    <div style={{ marginBottom: '16px' }}>
+                      <div style={{ 
+                        color: '#94a3b8', 
+                        fontSize: '12px',
+                        marginBottom: '4px'
+                      }}>
+                        Mensagem:
+                      </div>
+                      <p style={{ 
+                        color: '#cbd5e1', 
+                        margin: 0,
+                        lineHeight: '1.5'
+                      }}>
+                        {content}
+                      </p>
+                    </div>
+                  )}
+                  
+                  <div style={{ 
+                    marginTop: '16px',
+                    borderTop: '1px solid rgba(226, 183, 20, 0.1)',
+                    paddingTop: '16px'
+                  }}>
+                    <div style={{ 
+                      color: '#94a3b8', 
+                      fontSize: '12px',
+                      marginBottom: '8px'
+                    }}>
+                      Código ({language}):
+                    </div>
+                    <div style={{ 
+                      background: '#0f172a', 
+                      borderRadius: '8px',
+                      padding: '12px',
+                      maxHeight: '150px',
+                      overflow: 'auto'
+                    }}>
+                      <SyntaxHighlighter 
+                        language={language} 
+                        style={atomOneDark} 
+                        customStyle={{ 
+                          margin: 0, 
+                          borderRadius: 6,
+                          fontSize: '12px',
+                          background: 'transparent'
+                        }}
+                      >
+                        {codeSnippet}
+                      </SyntaxHighlighter>
+                    </div>
+                  </div>
                 </div>
               </div>
 
               <div style={{ textAlign: 'center' }}>
-                <div style={{ marginBottom: 12 }}>
-                  <div style={{ fontSize: 12, color: '#94a3b8' }}>Selando em</div>
-                  <div style={{ fontSize: 22, marginTop: 8 }}>
-                    <Countdown date={Date.now() + 5000} onComplete={handleSealComplete} />
+                <div style={{ marginBottom: '24px' }}>
+                  <div style={{ 
+                    fontSize: '14px', 
+                    color: '#94a3b8',
+                    marginBottom: '8px'
+                  }}>
+                    <i className="fas fa-hourglass-half"></i> Selando em:
+                  </div>
+                  <div className="countdown-timer">
+                    <Countdown 
+                      date={Date.now() + 5000} 
+                      onComplete={handleSealComplete}
+                      renderer={renderCountdown}
+                    />
                   </div>
                 </div>
 
-                <div style={{ marginTop: 18 }}>
-                  <button onClick={() => { setShowSealModal(false); }} className="btn-secondary">Cancelar</button>
+                <div style={{ 
+                  background: 'rgba(30, 41, 59, 0.5)', 
+                  borderRadius: '12px', 
+                  padding: '16px',
+                  border: '1px solid rgba(226, 183, 20, 0.2)',
+                  marginBottom: '16px'
+                }}>
+                  <div style={{ 
+                    color: '#94a3b8', 
+                    fontSize: '12px',
+                    marginBottom: '8px'
+                  }}>
+                    Detalhes:
+                  </div>
+                  <div style={{ textAlign: 'left' }}>
+                    <div style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between',
+                      marginBottom: '6px'
+                    }}>
+                      <span style={{ color: '#cbd5e1', fontSize: '12px' }}>Visibilidade:</span>
+                      <span style={{ 
+                        color: isPrivate ? '#e2b714' : '#2bcbba',
+                        fontSize: '12px',
+                        fontWeight: '600'
+                      }}>
+                        {isPrivate ? 'Privada' : 'Pública'}
+                      </span>
+                    </div>
+                    <div style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between',
+                      marginBottom: '6px'
+                    }}>
+                      <span style={{ color: '#cbd5e1', fontSize: '12px' }}>Data de abertura:</span>
+                      <span style={{ color: '#e2b714', fontSize: '12px' }}>
+                        {new Date(unlockDate).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#cbd5e1', fontSize: '12px' }}>Cor:</span>
+                      <div style={{ 
+                        width: '16px', 
+                        height: '16px', 
+                        background: color,
+                        borderRadius: '4px',
+                        border: '2px solid rgba(255,255,255,0.2)'
+                      }}></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '12px', flexDirection: 'column' }}>
+                  <button 
+                    onClick={() => { setShowSealModal(false); }} 
+                    className="btn-secondary"
+                    disabled={sealing}
+                    style={{ width: '100%' }}
+                  >
+                    <i className="fas fa-times"></i> Cancelar
+                  </button>
+                  <button 
+                    onClick={handleCreate}
+                    className="chronicle-button"
+                    disabled={sealing}
+                    style={{ width: '100%' }}
+                  >
+                    <i className="fas fa-seal"></i> Selar Agora
+                  </button>
                 </div>
               </div>
+            </div>
+
+            <div style={{ 
+              background: 'rgba(226, 183, 20, 0.1)', 
+              border: '1px solid rgba(226, 183, 20, 0.3)',
+              borderRadius: '8px', 
+              padding: '12px',
+              textAlign: 'center'
+            }}>
+              <i className="fas fa-info-circle" style={{ marginRight: '8px' }}></i>
+              <span style={{ color: '#e2b714', fontSize: '13px' }}>
+                Após selar, sua cápsula não poderá ser alterada até a data de desbloqueio.
+              </span>
             </div>
           </motion.div>
         </div>

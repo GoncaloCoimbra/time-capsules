@@ -1,0 +1,631 @@
+/* ===== Responsividade Melhorada para Dispositivos Móveis ===== */
+/* Otimizações para diferentes tamanhos de tela */
+
+/* ===== TABLET (768px - 1024px) ===== */
+/* Ajustes para tablets - reduz largura das sidebars mas mantém layout */
+@media (max-width: 1024px) {
+  /* Reduz gap entre elementos */
+  .dashboard-content {
+    gap: 16px;
+  }
+
+  /* Sidebar esquerda mais estreita em tablets */
+  .dashboard-sidebar {
+    width: 180px;
+  }
+
+  /* Sidebar direita mais compacta */
+  .dashboard-right-sidebar {
+    width: 240px;
+  }
+
+  /* Área de pesquisa menor */
+  .search-container {
+    min-width: 250px;
+  }
+
+  /* Reduz padding de cards */
+  .main-card {
+    padding: 20px;
+  }
+  
+  /* Forms em coluna única (não lado a lado) */
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  /* Cápsulas em coluna única */
+  .capsules-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  /* Estatísticas em coluna única */
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  /* Botões do chronicle menores */
+  .chronicle-button {
+    padding: 12px 20px;
+    font-size: 14px;
+  }
+  
+  /* Modais com padding reduzido */
+  .modal-card {
+    padding: 20px;
+  }
+  
+  /* Títulos dos modais menores */
+  .modal-card h3 {
+    font-size: 20px;
+  }
+}
+
+/* ===== MOBILE (até 768px) ===== */
+/* Layout principal para dispositivos móveis */
+@media (max-width: 768px) {
+  /* Dashboard com padding menor */
+  .time-chronicle-dashboard {
+    padding: 12px;
+  }
+
+  /* Header empilha verticalmente */
+  .dashboard-header {
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 20px;
+    padding: 0;
+  }
+
+  /* Partes do header ocupam largura total */
+  .header-left,
+  .header-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  /* Título do dashboard menor */
+  .chronicle-title {
+    font-size: 24px;
+    margin-bottom: 4px;
+  }
+
+  /* Hora/Relógio menor */
+  .digital-time {
+    font-size: 18px;
+  }
+
+  /* Conteúdo principal em coluna */
+  .dashboard-content {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* Sidebar esquerda fica horizontal/scrollável */
+  .dashboard-sidebar {
+    width: 100%;
+    flex-direction: row;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+    scroll-behavior: smooth;
+  }
+
+  /* Itens da sidebar não encolhem */
+  .sidebar-nav {
+    flex: 0 0 auto;
+    min-width: 240px;
+  }
+
+  /* Sidebar direita expande para largura total */
+  .dashboard-right-sidebar {
+    width: 100%;
+    height: auto;
+    position: static;
+    max-height: none;
+  }
+
+  /* Conteúdo principal em largura total */
+  .dashboard-main {
+    width: 100%;
+  }
+
+  .main-card {
+    padding: 16px;
+    border-radius: 12px;
+    margin-bottom: 16px;
+  }
+
+  .main-card h2 {
+    font-size: 18px;
+    margin-bottom: 16px;
+  }
+
+  /* Grids em coluna única */
+  .form-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  /* Cápsulas em coluna única */
+  .capsules-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  /* Estatísticas em coluna única */
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  /* Cards de estatística mais compactos */
+  .stat-card {
+    padding: 16px;
+  }
+
+  /* Número estatístico menor */
+  .stat-content h3 {
+    font-size: 24px;
+  }
+
+  /* Gráficos em coluna única */
+  .charts-container {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  /* Header dos cards empilha verticalmente */
+  .card-header {
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  /* Área de pesquisa em largura total */
+  .search-container {
+    min-width: unset;
+    width: 100%;
+  }
+
+  /* Ações dos cards em coluna */
+  .card-actions {
+    width: 100%;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  /* Botões ocupam largura total */
+  .card-actions button {
+    width: 100%;
+  }
+
+  /* Botões do chronicle em largura total */
+  .chronicle-button {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+
+  /* Botões secundários em largura total */
+  .btn-secondary {
+    width: 100%;
+  }
+
+  .modal-overlay {
+    padding: 12px;
+  }
+
+  .modal-card {
+    padding: 16px;
+    max-width: 100%;
+    border-radius: 16px;
+  }
+
+  .modal-card h3 {
+    font-size: 18px;
+    margin-bottom: 16px;
+  }
+
+  /* Ações de formulário em coluna */
+  .form-actions {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  /* Botões de formulário em largura total */
+  .form-actions button {
+    width: 100%;
+  }
+
+  /* Grid de trending em coluna única */
+  .trending-grid-modern {
+    grid-template-columns: 1fr;
+  }
+
+  /* Preview de cápsulas em coluna */
+  .time-capsules-preview {
+    grid-template-columns: 1fr;
+  }
+
+  /* Leaderboard com tamanho de fonte menor */
+  .leaderboard-header-modern,
+  .leaderboard-item-modern {
+    grid-template-columns: 40px 1fr 60px 60px;
+    padding: 12px 16px;
+    font-size: 0.8rem;
+  }
+
+  /* Avatar menor no leaderboard */
+  .user-avatar-modern {
+    width: 35px;
+    height: 35px;
+    font-size: 0.85rem;
+  }
+
+  /* Título da viagem no tempo menor */
+  .time-travel-header h2 {
+    font-size: 1.8rem;
+  }
+
+  /* Valor da hora menor */
+  .time-display-value {
+    font-size: 2rem;
+    padding: 16px 24px;
+  }
+
+  /* Selector de tempo em largura total */
+  .time-selector {
+    max-width: 100%;
+  }
+
+  /* Detalhes da cápsula em coluna */
+  .capsule-details {
+    grid-template-columns: 1fr;
+  }
+
+  /* Ações da cápsula em coluna */
+  .capsule-actions {
+    flex-direction: column;
+  }
+
+  .capsule-actions button {
+    width: 100%;
+  }
+
+  .section-title {
+    font-size: 1.4rem;
+    margin-bottom: 20px;
+  }
+  /* Caixa de correio com altura automática (menos espaço em mobile) */
+  .mailbox-container {
+    min-height: auto;
+    max-height: 300px;
+  }
+
+  /* Itens de navegação mais compactos */
+  .nav-item {
+    padding: 12px 16px;
+    font-size: 13px;
+  }
+
+  /* Gap menor entre elementos do header */
+  .header-right {
+    gap: 12px;
+  }
+
+  /* Informações do utilizador mais compactas */
+  .user-info {
+    padding: 6px 12px;
+    gap: 8px;
+  }
+
+  /* Avatar do utilizador menor */
+  .user-avatar {
+    width: 36px;
+    height: 36px;
+  }
+
+  /* Botão de notificações menor */
+  .notif-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  /* Botão de agendamento em largura total */
+  .btn-schedule {
+    padding: 8px 16px;
+    font-size: 12px;
+    width: 100%;
+  }
+
+  /* Controles da máquina do tempo em coluna */
+  .time-machine-controls {
+    width: 100%;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  /* Botões dos controles em largura total */
+  .time-machine-controls .chronicle-button {
+    width: 100%;
+    min-width: unset;
+  }
+
+  /* Ações de viagem no tempo em coluna */
+  .time-travel-actions {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .time-travel-actions button {
+    width: 100%;
+    min-width: unset;
+  }
+
+  .preview-actions {
+    flex-direction: column;
+  }
+
+  /* Botões de preview em largura total */
+  .preview-actions .chronicle-button {
+    width: 100%;
+  }
+
+  /* Botões secundários de preview em largura total */
+  .preview-actions .btn-secondary {
+    width: 100%;
+  }
+}
+
+/* ===== MOBILE PEQUENO (até 480px) ===== */
+/* Otimizações para smartphones pequenos */
+@media (max-width: 480px) {
+  /* Dashboard ainda mais compacto */
+  .time-chronicle-dashboard {
+    padding: 8px;
+  }
+
+  /* Header com padding mínimo */
+  .dashboard-header {
+    padding: 8px 0;
+    margin-bottom: 12px;
+    gap: 12px;
+  }
+
+  /* Título muito pequeno */
+  .chronicle-title {
+    font-size: 20px;
+    margin-bottom: 2px;
+  }
+
+  /* Subtítulo minúsculo */
+  .chronicle-subtitle {
+    font-size: 12px;
+  }
+
+  /* Hora em tamanho reduzido */
+  .digital-time {
+    font-size: 16px;
+  }
+
+  /* Data em tamanho muito pequeno */
+  .digital-date {
+    font-size: 10px;
+  }
+
+  /* Cards principais com padding minimal */
+  .main-card {
+    padding: 12px;
+    border-radius: 10px;
+  }
+
+  /* Títulos dos cards ainda menores */
+  .main-card h2 {
+    font-size: 16px;
+    margin-bottom: 12px;
+  }
+
+  /* Títulos de seções muito pequenos */
+  .time-travel-header h2,
+  .trending-header h2,
+  .section-title {
+    font-size: 1.4rem;
+    margin-bottom: 16px;
+  }
+
+  .stat-card {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  /* Ícone de estatística pequeno */
+  .stat-icon {
+    font-size: 28px;
+  }
+
+  /* Número de estatística menor */
+  .stat-content h3 {
+    font-size: 22px;
+    margin-bottom: 2px;
+  }
+
+  /* Texto de estatística minúsculo */
+  .stat-content p {
+    font-size: 12px;
+  }
+
+  /* Card de cápsula com padding mínimo */
+  .capsule-card {
+    padding: 12px;
+  }
+
+  /* Header de cápsula mais compacto */
+  .capsule-header {
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  /* Ícone de cápsula muito pequeno */
+  .capsule-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 12px;
+  }
+
+  /* Título de cápsula pequeno */
+  .capsule-info h3 {
+    font-size: 14px;
+    margin-bottom: 2px;
+  }
+
+  /* Autor da cápsula em font minúscula */
+  .capsule-author {
+    font-size: 11px;
+  }
+
+  /* Inputs do chronicle muito compactos */
+  .chronicle-input {
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+
+  .chronicle-button {
+    padding: 10px 14px;
+    font-size: 12px;
+    min-width: auto;
+  }
+
+  .btn-secondary {
+    padding: 10px 14px;
+    font-size: 12px;
+  }
+
+  .modal-card {
+    padding: 12px;
+  }
+
+  .modal-card h3 {
+    font-size: 16px;
+    margin-bottom: 12px;
+  }
+
+  .time-display-value {
+    font-size: 1.6rem;
+    padding: 12px 16px;
+  }
+
+  .countdown-timer {
+    font-size: 1.4rem;
+    padding: 12px;
+  }
+
+  .leaderboard-header-modern,
+  .leaderboard-item-modern {
+    grid-template-columns: 30px 1fr 50px 50px;
+    padding: 10px 12px;
+    font-size: 0.75rem;
+  }
+
+  .user-avatar-modern {
+    width: 30px;
+    height: 30px;
+    font-size: 0.75rem;
+  }
+
+  .user-info-modern strong {
+    font-size: 0.85rem;
+  }
+
+  .user-info-modern span {
+    font-size: 0.75rem;
+  }
+
+  .mailbox-header h3 {
+    font-size: 14px;
+  }
+
+  .mailbox-item {
+    padding: 8px 10px;
+  }
+
+  .nav-item {
+    padding: 10px 12px;
+    font-size: 12px;
+    gap: 8px;
+  }
+
+  .nav-icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .header-logo {
+    width: 120px;
+  }
+
+  .theme-toggle {
+    width: 36px;
+    height: 36px;
+  }
+
+  .user-avatar {
+    width: 32px;
+    height: 32px;
+  }
+
+  .user-name {
+    font-size: 11px;
+  }
+
+  .user-role {
+    font-size: 9px;
+  }
+
+  .notif-btn {
+    padding: 4px 10px;
+    font-size: 11px;
+  }
+
+  .btn-schedule {
+    padding: 6px 12px;
+    font-size: 11px;
+  }
+
+  .metric-value {
+    font-size: 1.4rem;
+  }
+
+  .metric-label {
+    font-size: 0.75rem;
+  }
+
+  .search-icon {
+    left: 10px;
+  }
+
+  .search-container .chronicle-input {
+    padding-left: 36px;
+  }
+
+  .dashboard-sidebar {
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .sidebar-nav {
+    min-width: 180px;
+  }
+
+  .form-grid {
+    gap: 12px;
+  }
+
+  .capsules-grid {
+    gap: 12px;
+  }
+
+  .stats-grid {
+    gap: 12px;
+  }
+}

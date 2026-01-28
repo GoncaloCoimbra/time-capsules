@@ -1,6 +1,7 @@
 ﻿import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { showToast } from '../components/ToastNotification';
 
 function Register() {
   const [username, setUsername] = useState('');
@@ -11,6 +12,7 @@ function Register() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [agreeTerms, setAgreeTerms] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [validations, setValidations] = useState({
@@ -106,17 +108,30 @@ function Register() {
 
     // Validações
     if (!username || !email || !password || !confirmPassword) {
-      setError('Por favor, preenche todos os campos');
+      const msg = 'Por favor, preenche todos os campos';
+      setError(msg);
+      showToast('⚠️ ' + msg, 'warning');
+      return;
+    }
+
+    if (!agreeTerms) {
+      const msg = 'Por favor, concorda com os Termos de Serviço e Política de Privacidade';
+      setError(msg);
+      showToast('⚠️ ' + msg, 'warning');
       return;
     }
 
     if (password !== confirmPassword) {
-      setError('As palavras-passe não coincidem');
+      const msg = 'As palavras-passe não coincidem';
+      setError(msg);
+      showToast('⚠️ ' + msg, 'warning');
       return;
     }
 
     if (passwordStrength < 3) {
-      setError('Por favor, usa uma palavra-passe mais forte');
+      const msg = 'Por favor, usa uma palavra-passe mais forte';
+      setError(msg);
+      showToast('⚠️ ' + msg, 'warning');
       return;
     }
 
@@ -125,12 +140,14 @@ function Register() {
     try {
       // Chama a API através do AuthContext
       await register(username, email, password);
-      
+      showToast(' Conta criada com sucesso! Bem-vindo!', 'success');
       // Redireciona para o dashboard após sucesso
       navigate('/dashboard');
     } catch (err) {
       // Trata erros da API
-      setError(err.response?.data?.message || 'Erro ao criar conta. Tenta novamente.');
+      const message = err.response?.data?.message || 'Erro ao criar conta. Tenta novamente.';
+      setError(message);
+      showToast('❌ ' + message, 'error');
     } finally {
       setLoading(false);
     }
@@ -433,7 +450,13 @@ function Register() {
           
           <div className="form-options">
             <label className="checkbox-container">
-              <input type="checkbox" className="hidden-checkbox" required />
+              <input 
+                type="checkbox" 
+                className="hidden-checkbox" 
+                required
+                checked={agreeTerms}
+                onChange={(e) => setAgreeTerms(e.target.checked)}
+              />
               <div className="custom-checkbox">
                 <svg className="check-icon" viewBox="0 0 24 24">
                   <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>

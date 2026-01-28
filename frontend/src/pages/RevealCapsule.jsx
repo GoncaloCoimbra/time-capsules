@@ -19,20 +19,67 @@ export default function RevealCapsule() {
   const [currentCode, setCurrentCode] = useState('');
   const containerRef = useRef(null);
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 700 : false);
+  const pollingIntervalRef = useRef(null);
+
+  // Função para carregar a cápsula
+  const loadCapsule = async () => {
+    try {
+      const res = await capsuleAPI.getById(id);
+      const data = res.data.capsule || res.data || null;
+      
+      console.log(`🔄 Cápsula carregada:`, {
+        id: data?.id,
+        title: data?.title,
+        unlockDate: data?.unlockDate,
+        isUnlocked: data?.isUnlocked,
+        agora: new Date().toLocaleString('pt-PT')
+      });
+      
+      setCapsule(data);
+      
+      // Se a cápsula foi desbloqueada, para o polling
+      if (data?.isUnlocked) {
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
+          console.log('✅ Polling parado - cápsula desbloqueada');
+        }
+      }
+    } catch (err) {
+      console.error('Erro ao carregar cápsula:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await capsuleAPI.getById(id);
-        setCapsule(res.data.capsule || res.data || null);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
+    loadCapsule();
+  }, [id, loadCapsule]);
+
+  // Polling automático a cada 5 segundos para verificar desbloqueio
+  useEffect(() => {
+    if (capsule && !capsule.isUnlocked) {
+      const now = new Date();
+      const unlock = new Date(capsule.unlockDate);
+      
+      // Se ainda não foi desbloqueada, configurar polling
+      if (now < unlock) {
+        const timeUntilUnlock = unlock - now;
+        const pollingInterval = Math.min(5000, Math.max(1000, timeUntilUnlock / 10));
+        
+        pollingIntervalRef.current = setInterval(() => {
+          loadCapsule();
+        }, pollingInterval);
+        
+        console.log(`⏰ Polling iniciado. Verificação a cada ${pollingInterval}ms até ${unlock}`);
+      }
+    }
+    
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
       }
     };
-    load();
-  }, [id]);
+  }, [capsule, id]);
 
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth < 700);
@@ -46,6 +93,21 @@ export default function RevealCapsule() {
   const now = new Date();
   const unlock = new Date(capsule.unlockDate);
   const isUnlocked = capsule.isUnlocked || now >= unlock;
+  
+  // Calcular tempo restante
+  const timeRemaining = unlock - now;
+  const formatTimeRemaining = (ms) => {
+    if (ms <= 0) return 'Desbloqueada!';
+    const segundos = Math.floor(ms / 1000);
+    const minutos = Math.floor(segundos / 60);
+    const horas = Math.floor(minutos / 60);
+    const dias = Math.floor(horas / 24);
+    
+    if (dias > 0) return `${dias}d ${horas % 24}h`;
+    if (horas > 0) return `${horas}h ${minutos % 60}m`;
+    if (minutos > 0) return `${minutos}m ${segundos % 60}s`;
+    return `${segundos}s`;
+  };
 
   const tryOpen = () => {
     if (!isUnlocked) {
@@ -106,11 +168,32 @@ export default function RevealCapsule() {
       </div>
 
       <div style={{ padding: 16 }}>
-        <p style={{ color: '#94a3b8' }}>Desbloqueia em: {new Date(capsule.unlockDate).toLocaleString()}</p>
+        {!isUnlocked ? (
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%)',
+            border: '1px solid rgba(59, 130, 246, 0.3)',
+            borderRadius: '8px',
+            padding: '16px',
+            marginBottom: '16px',
+            textAlign: 'center'
+          }}>
+            <p style={{ margin: '0 0 8px 0', color: '#94a3b8', fontSize: '12px' }}>⏳ CÁPSULA SELADA</p>
+            <p style={{ margin: '0 0 8px 0', color: '#e2b714', fontSize: '24px', fontWeight: 'bold' }}>
+              {formatTimeRemaining(timeRemaining)}
+            </p>
+            <p style={{ margin: '0', color: '#cbd5e1', fontSize: '13px' }}>
+              Desbloqueia em: <strong>{new Date(capsule.unlockDate).toLocaleString('pt-PT')}</strong>
+            </p>
+          </div>
+        ) : null}
+        
+        <p style={{ color: '#94a3b8', fontSize: '12px', margin: '8px 0' }}>
+          {isUnlocked ? '✅ Cápsula Desbloqueada' : '⏳ Aguardando desbloqueio automático...'}
+        </p>
 
-        {/* ========================================
-            NOVO: SISTEMA DE REAÇÕES
-            ======================================== */}
+        {/*
+             SISTEMA DE REAÇÕES
+            */}
         <div style={{ 
           marginTop: 16, 
           padding: 16, 

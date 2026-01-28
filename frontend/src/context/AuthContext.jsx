@@ -7,83 +7,136 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    const savedUser = localStorage.getItem('user');
-    (async () => {
-      if (token && savedUser) {
-        setUser(JSON.parse(savedUser));
-      } else if (token && !savedUser) {
-        try {
-          const res = await api.get('/auth/me');
-          const u = res.data?.user;
-          if (u) {
-            localStorage.setItem('user', JSON.stringify(u));
-            setUser(u);
-          }
-        } catch (err) {
-          console.error('Failed to fetch user with existing token', err);
-          localStorage.removeItem('token');
-        }
-      }
-      setLoading(false);
-    })();
-  }, []);
-
-  const register = async (username, email, password) => {
-    const response = await api.post('/auth/register', { username, email, password });
-    localStorage.setItem('token', response.data.token);
-    localStorage.setItem('user', JSON.stringify(response.data.user));
-    setUser(response.data.user);
-    return response.data;
-  };
-
-  const login = async (email, password) => {
-    const response = await api.post('/auth/login', { email, password });
-    localStorage.setItem('token', response.data.token);
-    localStorage.setItem('user', JSON.stringify(response.data.user));
-    setUser(response.data.user);
-    return response.data;
-  };
-
-  const oauthLogin = async (token) => {
-    localStorage.setItem('token', token);
-    const res = await api.get('/auth/me');
-    const u = res.data?.user;
-    if (!u) throw new Error('Failed to fetch user after oauth');
-    localStorage.setItem('user', JSON.stringify(u));
-    setUser(u);
-    return u;
-  };
-
-  const updateUser = useCallback(async () => {
+  // Guarda o user no localStorage para persistência entre refreshes
+  const saveUserToStorage = (userData) => {
     try {
-      const res = await api.get('/auth/me');
-      const updatedUser = res.data?.user;
-      if (updatedUser) {
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-        setUser(updatedUser);
-        return updatedUser;
-      }
+      localStorage.setItem('user', JSON.stringify(userData));
+      return true;
     } catch (err) {
-      console.error('Erro ao atualizar dados do usuário:', err);
-      throw err;
+      console.error('❌ Erro ao guardar no localStorage:', err);
+      return false;
     }
-  }, []);
+  };
 
-  const updateUserAvatar = useCallback((newAvatar) => {
-    setUser(prevUser => {
-      const updatedUser = { ...prevUser, avatar: newAvatar };
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      return updatedUser;
-    });
-  }, []);
-
-  const logout = () => {
+  // Logout function (definido antes do useEffect para ser usado nele)
+  const logout = useCallback(() => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
+  }, []);
+
+  // Carregamento inicial (Check Auth)
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const savedUser = localStorage.getItem('user');
+    
+    const initAuth = async () => {
+      if (token) {
+        try {
+          // Tentamos sempre ir buscar os dados mais frescos ao servidor
+          const res = await api.get('/auth/me');
+          const freshUser = res.data?.user;
+          if (freshUser) {
+            console.log('✅ User carregado do servidor:', freshUser);
+            setUser(freshUser);
+            saveUserToStorage(freshUser);
+          }
+        } catch (err) {
+          console.error('Token inválido ou expirado');
+          if (savedUser) {
+            try {
+              const parsedUser = JSON.parse(savedUser);
+              console.log('✅ User carregado do localStorage:', parsedUser);
+              setUser(parsedUser);
+            } catch (parseErr) {
+              console.error('Erro ao fazer parse do user do localStorage:', parseErr);
+              logout();
+            }
+          } else {
+            logout();
+          }
+        }
+      } else {
+        // Se não há token, tentar carregar do localStorage de forma segura
+        if (savedUser) {
+          try {
+            const parsedUser = JSON.parse(savedUser);
+            console.log('✅ User carregado do localStorage (sem token):', parsedUser);
+            setUser(parsedUser);
+          } catch (parseErr) {
+            console.error('Erro ao fazer parse do user do localStorage:', parseErr);
+            logout();
+          }
+        }
+      }
+      setLoading(false);
+    };
+
+    initAuth();
+  }, [logout]);
+
+  const login = async (email, password) => {
+    const response = await api.post('/auth/login', { email, password });
+    const userData = response.data.user;
+    
+    // Guardar token
+    localStorage.setItem('token', response.data.token);
+    
+    // Guardar user
+    saveUserToStorage(userData);
+    
+    // Atualizar state SINCRONAMENTE (sem await, mas sem delay)
+    setUser(userData);
+    
+    console.log('✅ Login concluído - User:', userData);
+    
+    return { user: userData, token: response.data.token };
   };
+
+  const register = async (username, email, password) => {
+    const response = await api.post('/auth/register', { username, email, password });
+    const userData = response.data.user;
+    
+    // Guardar token
+    localStorage.setItem('token', response.data.token);
+    
+    // Guardar user
+    saveUserToStorage(userData);
+    
+    // Atualizar state SINCRONAMENTE
+    setUser(userData);
+    
+    console.log('✅ Registro concluído - User:', userData);
+    
+    return { user: userData, token: response.data.token };
+  };
+
+  // 🔥 Atualiza o user localmente (sem fazer POST ao servidor)
+  const updateUser = useCallback((userData) => {
+    console.log('📝 Atualizando user localmente...', userData);
+    setUser(userData);
+    saveUserToStorage(userData);
+    return userData;
+  }, []);
+
+  // 🔥 Sincroniza com o servidor para trazer dados frescos
+  const refreshUserFromServer = useCallback(async () => {
+    try {
+      console.log('🔄 Recarregando dados do utilizador do servidor...');
+      const res = await api.get('/auth/me');
+      
+      if (res.data?.user) {
+        const freshUser = res.data.user;
+        setUser(freshUser);
+        saveUserToStorage(freshUser);
+        console.log('✅ Dados do utilizador sincronizados com sucesso!');
+        return freshUser;
+      }
+    } catch (err) {
+      console.error('❌ Erro ao recarregar dados do utilizador:', err);
+      throw err;
+    }
+  }, []);
 
   return (
     <AuthContext.Provider value={{ 
@@ -92,13 +145,27 @@ export const AuthProvider = ({ children }) => {
       register, 
       login, 
       logout, 
-      oauthLogin,
       updateUser,
-      updateUserAvatar
+      refreshUserFromServer
     }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    console.error('❌ useAuth deve ser usado dentro de AuthProvider!');
+    return {
+      user: null,
+      loading: true,
+      register: () => Promise.reject('AuthProvider não encontrado'),
+      login: () => Promise.reject('AuthProvider não encontrado'),
+      logout: () => {},
+      updateUser: () => {},
+      refreshUserFromServer: () => Promise.reject('AuthProvider não encontrado')
+    };
+  }
+  return context;
+};

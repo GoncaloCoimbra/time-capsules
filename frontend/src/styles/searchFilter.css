@@ -1,0 +1,322 @@
+/* ===== Estilos de Busca e Filtro ===== */
+/* Container principal com fundo semitransparente e bordas douradas */
+.search-filter-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 16px;
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(226, 183, 20, 0.1);
+  border-radius: 12px;
+}
+
+/* ===== Barra de Pesquisa ===== */
+/* Área de entrada de texto com ícone de lupa */
+.search-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(226, 183, 20, 0.2);
+  border-radius: 8px;
+  padding: 0 12px;
+  transition: all 0.3s ease;
+}
+
+/* Estado de foco - realça com cor dourada */
+.search-bar:focus-within {
+  border-color: #e2b714;
+  box-shadow: 0 0 0 3px rgba(226, 183, 20, 0.1);
+}
+
+/* Ícone de lupa */
+.search-icon {
+  width: 20px;
+  height: 20px;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+/* Campo de entrada - texto invisível sobre background transparente */
+.search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #f1f5f9;
+  font-size: 14px;
+  padding: 12px 0;
+  outline: none;
+}
+
+.search-input::placeholder {
+  color: #64748b;
+}
+
+.clear-search {
+  background: rgba(226, 183, 20, 0.2);
+  border: none;
+  color: #e2b714;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  transition: all 0.2s ease;
+}
+
+/* Efeito hover no botão limpar */
+.clear-search:hover {
+  background: rgba(226, 183, 20, 0.4);
+}
+
+/* ===== Botão de Mostrar/Ocultar Filtros ===== */
+/* Mostra contagem de filtros ativos num badge */
+.filter-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: rgba(226, 183, 20, 0.1);
+  border: 1px solid rgba(226, 183, 20, 0.2);
+  color: #e2b714;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+/* Efeito hover - destaca com cor mais intensa */
+.filter-toggle-btn:hover {
+  background: rgba(226, 183, 20, 0.2);
+  border-color: #e2b714;
+}
+
+/* Ícone SVG dentro do botão */
+.filter-toggle-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.filter-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #e2b714;
+  color: #0f172a;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+/* ===== Painel de Filtros ===== */
+/* Grade responsiva para múltiplos filtros lado a lado */
+.filters-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(226, 183, 20, 0.1);
+  border-radius: 8px;
+}
+
+/* Agrupa label e input verticamente */
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Label dos filtros - pequeno, maiúscula, e dourado */
+.filter-group label {
+  color: #e2b714;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Selects e inputs - background escuro com borda dourada subtil */
+.filter-select,
+.filter-input {
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(226, 183, 20, 0.2);
+  color: #f1f5f9;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+/* Estado de foco - destaca com cor dourada e sombra */
+.filter-select:focus,
+.filter-input:focus {
+  outline: none;
+  border-color: #e2b714;
+  box-shadow: 0 0 0 3px rgba(226, 183, 20, 0.1);
+}
+
+.filter-select option {
+  background: #0f172a;
+  color: #f1f5f9;
+}
+
+/* ===== Opções de Radio (Estado, etc) ===== */
+.filter-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Labels das opções de radio */
+.filter-options label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #94a3b8;
+  font-size: 14px;
+  font-weight: normal;
+  text-transform: none;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+/* Efeito hover das labels - muda para dourado */
+.filter-options label:hover {
+  color: #e2b714;
+}
+
+/* Input radio - usa cor dourada como accent */
+.filter-options input[type="radio"] {
+  cursor: pointer;
+  accent-color: #e2b714;
+}
+
+/* Date Range */
+.date-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.date-range input {
+  flex: 1;
+}
+
+.date-range span {
+  color: #64748b;
+}
+
+/* Tags Filter */
+.tags-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tag-filter-btn {
+  padding: 6px 12px;
+  background: rgba(226, 183, 20, 0.1);
+  border: 1px solid rgba(226, 183, 20, 0.2);
+  color: #94a3b8;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s ease;
+}
+
+.tag-filter-btn:hover {
+  border-color: #e2b714;
+  color: #e2b714;
+}
+
+.tag-filter-btn.selected {
+  background: #e2b714;
+  border-color: #e2b714;
+  color: #0f172a;
+  font-weight: 600;
+}
+
+/* Reset Button */
+.reset-filters-btn {
+  grid-column: 1 / -1;
+  padding: 10px 16px;
+  background: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  color: #ff6b6b;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.reset-filters-btn:hover {
+  background: rgba(255, 107, 107, 0.2);
+  border-color: #ff6b6b;
+}
+
+/* Light Mode */
+body.light-mode .search-filter-container {
+  background: rgba(226, 183, 20, 0.05);
+  border-color: rgba(226, 183, 20, 0.1);
+}
+
+body.light-mode .search-bar {
+  background: rgba(255, 255, 255, 0.8);
+  border-color: rgba(226, 183, 20, 0.2);
+}
+
+body.light-mode .search-input {
+  color: #000;
+}
+
+body.light-mode .search-input::placeholder {
+  color: #999;
+}
+
+body.light-mode .filter-select,
+body.light-mode .filter-input {
+  background: rgba(255, 255, 255, 0.8);
+  border-color: rgba(226, 183, 20, 0.2);
+  color: #000;
+}
+
+body.light-mode .filter-select option {
+  background: #fff;
+  color: #000;
+}
+
+body.light-mode .filters-panel {
+  background: rgba(226, 183, 20, 0.08);
+  border-color: rgba(226, 183, 20, 0.15);
+}
+
+/* Mobile Responsividade */
+@media (max-width: 768px) {
+  .search-filter-container {
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .filters-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .date-range {
+    flex-direction: column;
+  }
+
+  .date-range span {
+    display: none;
+  }
+}

@@ -3,9 +3,17 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
-import { pt } from 'date-fns/locale'; // Mudado de ptBR para pt (Portugal)
+import { pt } from 'date-fns/locale';
 import { toast } from 'react-hot-toast';
-import { capsuleAPI, communityAPI, favoriteAPI, commentAPI, likeAPI, followAPI, notificationAPI, authAPI } from '../services/capsuleService';
+import { 
+  communityAPI, 
+  favoriteAPI, 
+  commentAPI, 
+  likeAPI, 
+  followAPI, 
+  authAPI 
+} from '../services/capsuleService';
+import PrivacySettings from '../components/PrivacySettings';
 import './UserProfile.css';
 
 function UserProfile() {
@@ -14,14 +22,18 @@ function UserProfile() {
   
   const [userProfile, setUserProfile] = useState(null);
   const [publicCapsules, setPublicCapsules] = useState([]);
+  const [favoriteCapsules, setFavoriteCapsules] = useState([]);
+  const [followers, setFollowers] = useState([]);
+  const [following, setFollowing] = useState([]);
   const [userStats, setUserStats] = useState(null);
   const [selectedCapsule, setSelectedCapsule] = useState(null);
   const [loading, setLoading] = useState(true);
-  const { user: currentUser, updateUser } = useAuth();
+  const { user: currentUser, updateUser, refreshUserFromServer } = useAuth();
+  
+  const [activeTab, setActiveTab] = useState('capsules');
   const [filterType, setFilterType] = useState('all');
   const [sortBy, setSortBy] = useState('recent');
 
-  // Estados para edição de perfil
   const [isFollowing, setIsFollowing] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [editUsername, setEditUsername] = useState('');
@@ -33,160 +45,154 @@ function UserProfile() {
   const fileInputRef = useRef(null);
   const [avatarKey, setAvatarKey] = useState(Date.now());
 
-  // Chave para localStorage
-  const AVATAR_STORAGE_KEY = `user_avatar_${userId}`;
-
   useEffect(() => {
     loadUserProfile();
-  }, [userId]);
-
-  // Função para obter avatar de forma inteligente
-  const getStoredAvatar = () => {
-    // 1. Primeiro tenta do localStorage
-    const storedAvatar = localStorage.getItem(AVATAR_STORAGE_KEY);
-    if (storedAvatar) return storedAvatar;
-    
-    // 2. Depois do contexto de autenticação
-    if (currentUser && currentUser.id === userId && currentUser.avatar) {
-      return currentUser.avatar;
-    }
-    
-    // 3. Se não houver, retorna null para usar o padrão
-    return null;
-  };
-
-  // Função para guardar avatar no localStorage
-  const saveAvatarToStorage = (avatarUrl) => {
-    if (avatarUrl) {
-      localStorage.setItem(AVATAR_STORAGE_KEY, avatarUrl);
-    }
-  };
+  }, [userId, currentUser]);
 
   const loadUserProfile = async () => {
     try {
       setLoading(true);
       
-      // Buscar cápsulas públicas do usuário
+      const isOwnProfile = currentUser && currentUser.id === userId;
+      
+      if (isOwnProfile) {
+        const userData = {
+          id: currentUser.id,
+          username: currentUser.username || 'Utilizador',
+          email: currentUser.email,
+          createdAt: currentUser.createdAt || new Date(),
+          avatar: currentUser.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.id}`,
+          bio: currentUser.bio || 'Colecionador de cápsulas temporais'
+        };
+        
+        setUserProfile(userData);
+        setAvatarPreview(userData.avatar);
+      }
+      
       const capsulesRes = await communityAPI.explorePublic({
         creator: userId,
-        limit: 50
+        limit: 100
       });
       
       const capsules = capsulesRes.data.capsules || [];
       setPublicCapsules(capsules);
 
-      // Construir perfil a partir dos dados
-      if (capsules.length > 0) {
-        const creator = capsules[0].User;
-        
-        // Obter avatar inteligentemente
-        const storedAvatar = getStoredAvatar();
-        const userAvatar = storedAvatar || 
-                         creator?.avatar || 
-                         `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`;
-        
-        // Se encontrámos um avatar no servidor e não temos no storage, guarda
-        if (creator?.avatar && !storedAvatar) {
-          saveAvatarToStorage(creator.avatar);
-        }
+      if (!isOwnProfile && capsules.length > 0) {
+        const creator = capsules[0].User || capsules[0].creator;
         
         const userData = {
           id: userId,
           username: creator?.username || 'Utilizador Anónimo',
           email: creator?.email,
           createdAt: creator?.createdAt,
-          avatar: userAvatar,
+          avatar: creator?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`,
           bio: creator?.bio || 'Colecionador de cápsulas temporais'
         };
         
         setUserProfile(userData);
-        setAvatarPreview(userAvatar);
-
-        // Calcular estatísticas
-        const stats = {
-          totalCapsules: capsules.length,
-          unlockedCapsules: capsules.filter(c => c.isUnlocked).length,
-          lockedCapsules: capsules.filter(c => !c.isUnlocked).length,
-          totalViews: capsules.reduce((sum, c) => sum + (c.viewCount || 0), 0),
-          totalLikes: capsules.reduce((sum, c) => sum + (c.likeCount || 0), 0),
-          totalComments: capsules.reduce((sum, c) => sum + (c.commentCount || 0), 0),
-          memberSince: format(new Date(creator?.createdAt), 'MMMM yyyy', { locale: pt })
+        setAvatarPreview(userData.avatar);
+      } else if (!isOwnProfile && capsules.length === 0) {
+        const userData = {
+          id: userId,
+          username: 'Utilizador',
+          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`,
+          bio: 'Colecionador de cápsulas temporais',
+          createdAt: new Date()
         };
         
-        setUserStats(stats);
-      } else {
-        // Se o utilizador não tem cápsulas, usar informações básicas
-        try {
-          const storedAvatar = getStoredAvatar();
-          const userAvatar = storedAvatar || 
-                           `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`;
-          
-          const userData = {
-            id: userId,
-            username: 'Utilizador',
-            avatar: userAvatar,
-            bio: 'Colecionador de cápsulas temporais',
-            createdAt: new Date()
-          };
-          
-          setUserProfile(userData);
-          setAvatarPreview(userAvatar);
-          
-          setUserStats({
-            totalCapsules: 0,
-            unlockedCapsules: 0,
-            lockedCapsules: 0,
-            totalViews: 0,
-            totalLikes: 0,
-            totalComments: 0,
-            memberSince: format(new Date(), 'MMMM yyyy', { locale: pt })
-          });
-        } catch (error) {
-          console.error('Erro ao carregar informações do utilizador:', error);
-        }
+        setUserProfile(userData);
+        setAvatarPreview(userData.avatar);
       }
 
-      // Verificar status de seguir
-      if (currentUser) {
-        try {
-          const followersRes = await followAPI.getFollowers(userId);
-          const followers = followersRes.data.followers || [];
-          const isFollowing = followers.some(f => f.followerId === currentUser.id || f.followerId === currentUser.userId);
-          setIsFollowing(!!isFollowing);
-        } catch (err) {
-          // ignorar
+      const stats = {
+        totalCapsules: capsules.length,
+        unlockedCapsules: capsules.filter(c => c.isUnlocked).length,
+        lockedCapsules: capsules.filter(c => !c.isUnlocked).length,
+        totalViews: capsules.reduce((sum, c) => sum + (c.viewCount || 0), 0),
+        totalLikes: capsules.reduce((sum, c) => sum + (c.likeCount || 0), 0),
+        totalComments: capsules.reduce((sum, c) => sum + (c.commentCount || 0), 0),
+        memberSince: format(
+          new Date(userProfile?.createdAt || currentUser?.createdAt || new Date()), 
+          'MMMM yyyy', 
+          { locale: pt }
+        )
+      };
+      
+      setUserStats(stats);
+
+      try {
+        const favRes = await favoriteAPI.listByUser(userId);
+        const favs = favRes.data.favorites || [];
+        const favoriteCapsulesData = favs.map(fav => ({
+          ...fav.capsule,
+          isFavorite: true,
+          favoritedAt: fav.createdAt
+        }));
+        setFavoriteCapsules(favoriteCapsulesData);
+      } catch (err) {
+        console.error('Erro ao carregar favoritos:', err);
+      }
+
+      try {
+        const followersRes = await followAPI.getFollowers(userId);
+        const followersData = followersRes.data.followers || [];
+        const formattedFollowers = followersData.map(f => ({
+          id: f.follower?.id || f.followerId,
+          username: f.follower?.username || 'Utilizador',
+          avatar: f.follower?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${f.followerId}`,
+          bio: f.follower?.bio || 'Colecionador de cápsulas',
+          followedAt: f.createdAt
+        }));
+        setFollowers(formattedFollowers);
+
+        if (currentUser) {
+          const isUserFollowing = formattedFollowers.some(f => 
+            f.id === currentUser.id || f.id === currentUser.userId
+          );
+          setIsFollowing(!!isUserFollowing);
         }
+      } catch (err) {
+        console.error('Erro ao carregar seguidores:', err);
+      }
+
+      try {
+        const followingRes = await followAPI.getFollowing(userId);
+        const followingData = followingRes.data.following || [];
+        const formattedFollowing = followingData.map(f => ({
+          id: f.following?.id || f.followingId,
+          username: f.following?.username || 'Utilizador',
+          avatar: f.following?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${f.followingId}`,
+          bio: f.following?.bio || 'Colecionador de cápsulas',
+          followedAt: f.createdAt
+        }));
+        setFollowing(formattedFollowing);
+      } catch (err) {
+        console.error('Erro ao carregar following:', err);
       }
 
       setLoading(false);
     } catch (error) {
       console.error('Erro ao carregar perfil:', error);
-      // Fallback: mostrar perfil básico mesmo se a chamada falhar (ex: endpoints protegidos)
-      try {
-        const storedAvatar = getStoredAvatar();
-        const userAvatar = storedAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`;
-        const userData = {
-          id: userId,
-          username: 'Utilizador',
-          avatar: userAvatar,
-          bio: 'Colecionador de cápsulas temporais',
-          createdAt: new Date()
-        };
-        setUserProfile(userData);
-        setAvatarPreview(userAvatar);
-        setUserStats({
-          totalCapsules: 0,
-          unlockedCapsules: 0,
-          lockedCapsules: 0,
-          totalViews: 0,
-          totalLikes: 0,
-          totalComments: 0,
-          memberSince: format(new Date(), 'MMMM yyyy', { locale: pt })
-        });
-      } catch (err) {
-        // If fallback fails, keep original behavior
-        console.error('Fallback also failed:', err);
-      }
+      
+      const fallbackData = {
+        id: userId,
+        username: currentUser?.username || 'Utilizador',
+        avatar: currentUser?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`,
+        bio: currentUser?.bio || 'Colecionador de cápsulas temporais',
+        createdAt: currentUser?.createdAt || new Date()
+      };
+      
+      setUserProfile(fallbackData);
+      setAvatarPreview(fallbackData.avatar);
+      setUserStats({
+        totalCapsules: 0,
+        unlockedCapsules: 0,
+        lockedCapsules: 0,
+        totalViews: 0,
+        totalLikes: 0,
+        totalComments: 0,
+        memberSince: format(new Date(), 'MMMM yyyy', { locale: pt })
+      });
 
       setLoading(false);
     }
@@ -197,19 +203,54 @@ function UserProfile() {
     try {
       const res = await followAPI.toggle(userId);
       setIsFollowing(res.data.following);
+      
+      const followersRes = await followAPI.getFollowers(userId);
+      const followersData = followersRes.data.followers || [];
+      const formattedFollowers = followersData.map(f => ({
+        id: f.follower?.id || f.followerId,
+        username: f.follower?.username || 'Utilizador',
+        avatar: f.follower?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${f.followerId}`,
+        bio: f.follower?.bio || 'Colecionador de cápsulas',
+        followedAt: f.createdAt
+      }));
+      setFollowers(formattedFollowers);
+      
+      toast.success(res.data.following ? '✅ A seguir!' : '❌ Deixou de seguir');
     } catch (error) {
       console.error('Error toggling follow:', error);
+      toast.error('Erro ao seguir/deixar de seguir');
+    }
+  };
+
+  const handleFollowUser = async (targetUserId) => {
+    if (!currentUser) return navigate('/login');
+    try {
+      const res = await followAPI.toggle(targetUserId);
+      
+      if (res.data.following) {
+        const userToAdd = followers.find(f => f.id === targetUserId) || 
+                         following.find(f => f.id === targetUserId);
+        if (userToAdd) {
+          setFollowing(prev => [...prev, userToAdd]);
+        }
+      } else {
+        setFollowing(prev => prev.filter(f => f.id !== targetUserId));
+      }
+      
+      toast.success(res.data.following ? '✅ Agora estás a seguir!' : '❌ Deixaste de seguir');
+    } catch (error) {
+      console.error('Error following user:', error);
+      toast.error('Erro ao seguir utilizador');
     }
   };
 
   const openEditProfile = () => {
-    // Usar os dados mais recentes do perfil para preencher o formulário
     if (currentUser && currentUser.id === userId) {
-      setEditUsername(userProfile?.username || currentUser.username || '');
-      setEditAvatar(userProfile?.avatar || currentUser.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.id}`);
-      setEditBio(userProfile?.bio || currentUser.bio || '');
+      setEditUsername(currentUser.username || '');
+      setEditAvatar(currentUser.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.id}`);
+      setEditBio(currentUser.bio || '');
       setEditPassword('');
-      setAvatarPreview(userProfile?.avatar || currentUser.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.id}`);
+      setAvatarPreview(currentUser.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.id}`);
       setShowEditProfile(true);
     }
   };
@@ -223,32 +264,69 @@ function UserProfile() {
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Verificar se o ficheiro é uma imagem
       if (!file.type.startsWith('image/')) {
         alert('Por favor, seleciona um ficheiro de imagem válido.');
         return;
       }
 
-      // Verificar o tamanho do ficheiro (limite de 5MB)
       if (file.size > 5 * 1024 * 1024) {
         alert('A imagem deve ter menos de 5MB.');
         return;
       }
 
+      // Ler e comprimir a imagem
       const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result;
-        setEditAvatar(base64String);
-        setAvatarPreview(base64String);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          // Criar canvas para redimensionar a imagem
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          
+          // Dimensões máximas: 256x256 para avatar
+          const maxSize = 256;
+          let width = img.width;
+          let height = img.height;
+          
+          // Manter proporções
+          if (width > height) {
+            if (width > maxSize) {
+              height = Math.round((height * maxSize) / width);
+              width = maxSize;
+            }
+          } else {
+            if (height > maxSize) {
+              width = Math.round((width * maxSize) / height);
+              height = maxSize;
+            }
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Converter para JPEG comprimido
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.85);
+          
+          // Validar tamanho do base64
+          if (compressedBase64.length > 1024 * 1024) {
+            // Se ainda for maior que 1MB, usar qualidade menor
+            const veryCompressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+            setEditAvatar(veryCompressedBase64);
+            setAvatarPreview(veryCompressedBase64);
+          } else {
+            setEditAvatar(compressedBase64);
+            setAvatarPreview(compressedBase64);
+          }
+        };
+        img.src = event.target.result;
       };
       reader.readAsDataURL(file);
     }
   };
 
   const generateRandomAvatar = () => {
-    // Gera uma string aleatória para usar como seed
     const randomSeed = Math.random().toString(36).substring(2, 15);
-    // Cria URL da API DiceBear com seed aleatório
     const randomAvatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${randomSeed}`;
     setEditAvatar(randomAvatar);
     setAvatarPreview(randomAvatar);
@@ -260,18 +338,15 @@ function UserProfile() {
     try {
       setIsSaving(true);
       
-      // Preparar payload JSON
       const payload = { 
         username: editUsername.trim(), 
         bio: editBio.trim() 
       };
       
-      // Adicionar avatar se existir (pode ser base64 ou URL)
       if (editAvatar && editAvatar.trim()) {
         payload.avatar = editAvatar.trim();
       }
       
-      // Adicionar password se fornecida
       if (editPassword.trim()) {
         if (editPassword.length < 6) {
           alert('A password deve ter no mínimo 6 caracteres.');
@@ -281,104 +356,115 @@ function UserProfile() {
         payload.password = editPassword;
       }
       
-      // Validar campos obrigatórios
       if (!editUsername.trim()) {
         alert('O nome de utilizador é obrigatório.');
         setIsSaving(false);
         return;
       }
       
-      // Chamar API de atualização de perfil
+      console.log('📤 Enviando atualização de perfil...', { 
+        username: payload.username, 
+        bio: payload.bio, 
+        avatarSize: payload.avatar ? (payload.avatar.length / 1024).toFixed(2) + 'KB' : 'não' 
+      });
+      
       const res = await authAPI.updateProfile(payload);
       
       if (res.data && res.data.user) {
         const updatedUser = res.data.user;
         
-        // Determinar o novo avatar
-        const newAvatar = updatedUser.avatar || editAvatar;
-        
-        // 1. Guardar no localStorage
-        saveAvatarToStorage(newAvatar);
-        
-        // 2. Atualizar o estado local
-        const updatedProfile = {
-          ...userProfile,
+        const userData = {
+          id: currentUser.id,
+          email: currentUser.email,
           username: updatedUser.username || editUsername.trim(),
-          avatar: newAvatar,
-          bio: updatedUser.bio || editBio.trim()
+          avatar: updatedUser.avatar || editAvatar.trim(),
+          bio: updatedUser.bio || editBio.trim(),
+          createdAt: currentUser.createdAt
         };
         
-        setUserProfile(updatedProfile);
-        setAvatarPreview(newAvatar);
+        // 1️⃣ Atualiza o contexto de autenticação PRIMEIRO
+        updateUser(userData);
         
-        // 3. Atualizar o contexto de autenticação
-        if (updateUser) {
-          updateUser({
-            ...currentUser,
-            username: updatedUser.username || editUsername.trim(),
-            avatar: newAvatar,
-            bio: updatedUser.bio || editBio.trim()
-          });
-        }
-        
-        // 4. Forçar atualização do avatar (cache busting)
-        setAvatarKey(Date.now());
-        
-        // 5. Fechar o modal
+        // 2️⃣ Atualiza o perfil local do utilizador
+        setUserProfile(userData);
+        setAvatarPreview(userData.avatar);
+        setAvatarKey(Date.now()); // Força re-render da imagem
         setShowEditProfile(false);
         
-        // 6. Mostrar mensagem de sucesso
-        alert('Perfil atualizado com sucesso!');
+        toast.success('✅ Perfil atualizado com sucesso!');
+        
+        // 3️⃣ Sincroniza com o servidor para trazer dados frescos
+        setTimeout(async () => {
+          try {
+            await refreshUserFromServer();
+            console.log('✅ Avatar sincronizado com sucesso após guardar');
+          } catch (err) {
+            console.error('⚠️ Erro ao sincronizar:', err);
+          }
+        }, 500);
         
       } else {
         throw new Error('Resposta da API inválida');
       }
       
     } catch (error) {
-      console.error('Erro completo ao atualizar perfil:', error);
+      console.error('❌ Erro ao atualizar perfil:', error);
       const status = error?.response?.status;
       const message = error?.response?.data?.message || error.message || 'Verifica os dados e tenta novamente.';
 
       if (status === 401) {
-        // Token inválido ou expirado: limpar estado e redirecionar para login
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
         toast.error('Sessão expirada. Faça login novamente.');
         navigate('/login');
         return;
       }
 
-      alert(`Erro ao atualizar perfil: ${message}`);
+      if (status === 413) {
+        toast.error('Ficheiro de imagem demasiado grande. Tenta uma imagem menor.');
+        return;
+      }
+
+      toast.error(`Erro: ${message}`);
     } finally {
       setIsSaving(false);
     }
   };
 
-  const toggleFavorite = async (id) => {
+  const toggleFavorite = async (capsuleId) => {
     try {
-      // optimistic UI
-      setPublicCapsules(prev => prev.map(c => c.id === id ? { ...c, isFavorited: !c.isFavorited } : c));
-      const res = await favoriteAPI.toggle(id);
-      const fav = res.data.favorited;
-      setPublicCapsules(prev => prev.map(c => c.id === id ? { ...c, isFavorited: fav } : c));
+      setPublicCapsules(prev => prev.map(c => 
+        c.id === capsuleId ? { ...c, isFavorited: !c.isFavorited } : c
+      ));
+      
+      setFavoriteCapsules(prev => prev.filter(c => c.id !== capsuleId));
+      
+      const res = await favoriteAPI.toggle(capsuleId);
+      const isFavorited = res.data.favorited;
+      
+      const favRes = await favoriteAPI.listByUser(userId);
+      const favs = favRes.data.favorites || [];
+      const favoriteCapsulesData = favs.map(fav => ({
+        ...fav.capsule,
+        isFavorite: true,
+        favoritedAt: fav.createdAt
+      }));
+      setFavoriteCapsules(favoriteCapsulesData);
+      
+      toast.success(isFavorited ? '⭐ Adicionado aos favoritos!' : '❌ Removido dos favoritos');
     } catch (error) {
       console.error('Error toggling favorite:', error);
-      // revert optimistic
-      setPublicCapsules(prev => prev.map(c => c.id === id ? { ...c, isFavorited: !(c.isFavorited) } : c));
+      toast.error('Erro ao atualizar favoritos');
     }
   };
 
   const getFilteredAndSortedCapsules = () => {
     let filtered = [...publicCapsules];
 
-    // Filtrar
     if (filterType === 'unlocked') {
       filtered = filtered.filter(c => c.isUnlocked);
     } else if (filterType === 'locked') {
       filtered = filtered.filter(c => !c.isUnlocked);
     }
 
-    // Ordenar
     if (sortBy === 'popular') {
       filtered.sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
     } else if (sortBy === 'trending') {
@@ -390,24 +476,235 @@ function UserProfile() {
     return filtered;
   };
 
-  // Função para gerar URL do avatar com cache busting
   const getAvatarUrl = (avatar) => {
-    if (!avatar) return `https://api.dicebear.com/7.x/avataaars/svg?seed=${userProfile.id}`;
+    if (!avatar) return `https://api.dicebear.com/7.x/avataaars/svg?seed=${userProfile?.id || currentUser?.id || 'user'}`;
     
-    // Se for base64, retorna direto
     if (avatar.startsWith('data:image')) {
       return avatar;
     }
     
-    // Se for URL externa, adiciona timestamp para evitar cache
     const separator = avatar.includes('?') ? '&' : '?';
     return `${avatar}${separator}_=${avatarKey}`;
+  };
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'capsules':
+        return (
+          <motion.div
+            key="capsules"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+          >
+            <div className="controls-section">
+              <div className="filter-controls">
+                <div className="filter-group">
+                  <label>Filtrar:</label>
+                  <div className="filter-buttons">
+                    <button 
+                      className={`filter-btn ${filterType === 'all' ? 'active' : ''}`}
+                      onClick={() => setFilterType('all')}
+                    >
+                      Todas
+                    </button>
+                    <button 
+                      className={`filter-btn ${filterType === 'unlocked' ? 'active' : ''}`}
+                      onClick={() => setFilterType('unlocked')}
+                    >
+                      Desbloqueadas
+                    </button>
+                    <button 
+                      className={`filter-btn ${filterType === 'locked' ? 'active' : ''}`}
+                      onClick={() => setFilterType('locked')}
+                    >
+                      Bloqueadas
+                    </button>
+                  </div>
+                </div>
+
+                <div className="sort-group">
+                  <label>Ordenar por:</label>
+                  <select 
+                    value={sortBy} 
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="sort-select"
+                  >
+                    <option value="recent">Recentes</option>
+                    <option value="popular">Populares</option>
+                    <option value="trending">Em Tendência</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="results-info">
+                Mostrando {getFilteredAndSortedCapsules().length} cápsula{getFilteredAndSortedCapsules().length !== 1 ? 's' : ''}
+              </div>
+            </div>
+
+            <div className="capsules-grid">
+              {getFilteredAndSortedCapsules().length > 0 ? (
+                getFilteredAndSortedCapsules().map((capsule, index) => (
+                  <CapsuleCard 
+                    key={capsule.id}
+                    capsule={capsule}
+                    index={index}
+                    onToggleFavorite={toggleFavorite}
+                    onView={setSelectedCapsule}
+                    isOwner={currentUser && currentUser.id === userId}
+                  />
+                ))
+              ) : (
+                <div className="empty-state">
+                  <p>Este utilizador ainda não tem cápsulas públicas</p>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        );
+
+      case 'favorites':
+        return (
+          <motion.div
+            key="favorites"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+          >
+            <div className="favorites-header">
+              <h3>⭐ Cápsulas Favoritas</h3>
+              <p>{favoriteCapsules.length} cápsula{favoriteCapsules.length !== 1 ? 's' : ''} guardada{favoriteCapsules.length !== 1 ? 's' : ''}</p>
+            </div>
+            
+            <div className="capsules-grid">
+              {favoriteCapsules.length > 0 ? (
+                favoriteCapsules.map((capsule, index) => (
+                  <CapsuleCard 
+                    key={capsule.id || index}
+                    capsule={capsule}
+                    index={index}
+                    onToggleFavorite={toggleFavorite}
+                    onView={setSelectedCapsule}
+                    isOwner={currentUser && currentUser.id === userId}
+                    isFavorite={true}
+                  />
+                ))
+              ) : (
+                <div className="empty-state">
+                  <div className="empty-icon">⭐</div>
+                  <h4>Ainda não tens favoritos</h4>
+                  <p>Guarda cápsulas que gostes para as encontrares facilmente mais tarde!</p>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        );
+
+      case 'followers':
+        return (
+          <motion.div
+            key="followers"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+          >
+            <div className="followers-header">
+              <h3>👥 Seguidores</h3>
+              <p>{followers.length} pessoa{followers.length !== 1 ? 's' : ''} segue{followers.length !== 1 ? 'm' : ''} este perfil</p>
+            </div>
+            
+            <div className="users-grid">
+              {followers.length > 0 ? (
+                followers.map((follower, index) => (
+                  <UserCard 
+                    key={follower.id || index}
+                    user={follower}
+                    index={index}
+                    currentUserId={currentUser?.id}
+                    onFollow={handleFollowUser}
+                    isFollowing={following.some(f => f.id === follower.id)}
+                    showFollowButton={currentUser && currentUser.id !== follower.id}
+                  />
+                ))
+              ) : (
+                <div className="empty-state">
+                  <div className="empty-icon">👥</div>
+                  <h4>Ainda não tens seguidores</h4>
+                  <p>Partilha o teu perfil para começares a ganhar seguidores!</p>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        );
+
+      case 'following':
+        return (
+          <motion.div
+            key="following"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+          >
+            <div className="following-header">
+              <h3>➡️ A Seguir</h3>
+              <p>A seguir a {following.length} pessoa{following.length !== 1 ? 's' : ''}</p>
+            </div>
+            
+            <div className="users-grid">
+              {following.length > 0 ? (
+                following.map((followedUser, index) => (
+                  <UserCard 
+                    key={followedUser.id || index}
+                    user={followedUser}
+                    index={index}
+                    currentUserId={currentUser?.id}
+                    onFollow={handleFollowUser}
+                    isFollowing={true}
+                    showFollowButton={currentUser && currentUser.id !== followedUser.id}
+                  />
+                ))
+              ) : (
+                <div className="empty-state">
+                  <div className="empty-icon">➡️</div>
+                  <h4>Ainda não segues ninguém</h4>
+                  <p>Começa a seguir outros utilizadores para veres as suas cápsulas!</p>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        );
+
+      case 'settings':
+        return (
+          <motion.div
+            key="settings"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+          >
+            <PrivacySettings 
+              userId={userId}
+              currentUser={currentUser}
+              onSettingsChange={() => {
+                // Recarrega o perfil após mudanças de privacidade
+                loadUserProfile();
+              }}
+            />
+          </motion.div>
+        );
+
+      default:
+        return null;
+    }
   };
 
   if (loading) {
     return (
       <div className="user-profile-container loading">
-        <div className="loading-spinner">A carregar perfil...</div>
+        <div className="loading-spinner">
+          <div className="spinner"></div>
+          A carregar perfil...
+        </div>
       </div>
     );
   }
@@ -423,17 +720,13 @@ function UserProfile() {
     );
   }
 
-  const displayedCapsules = getFilteredAndSortedCapsules();
-
   return (
     <>
       <div className="user-profile-container">
-        {/* Botão para voltar ao dashboard */}
         <button className="dashboard-back-btn" onClick={() => navigate('/dashboard')}>
           ← Voltar para Dashboard
         </button>
 
-        {/* Cabeçalho do Perfil */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -449,19 +742,8 @@ function UserProfile() {
                 alt={userProfile.username}
                 className="profile-avatar"
                 onError={(e) => {
-                  // Se a imagem falhar, usa avatar padrão e atualiza storage
                   const defaultAvatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${userProfile.id}`;
                   e.target.src = defaultAvatar;
-                  
-                  // Atualizar estados
-                  setUserProfile(prev => ({ 
-                    ...prev, 
-                    avatar: defaultAvatar 
-                  }));
-                  setAvatarPreview(defaultAvatar);
-                  
-                  // Atualizar localStorage
-                  saveAvatarToStorage(defaultAvatar);
                 }}
               />
             </div>
@@ -475,8 +757,21 @@ function UserProfile() {
                   <span className="meta-label">Membro desde</span>
                   <span className="meta-value">{userStats?.memberSince}</span>
                 </div>
+                <div className="meta-item">
+                  <span className="meta-label">Seguidores</span>
+                  <span className="meta-value">{followers.length}</span>
+                </div>
+                <div className="meta-item">
+                  <span className="meta-label">A seguir</span>
+                  <span className="meta-value">{following.length}</span>
+                </div>
+                <div className="meta-item">
+                  <span className="meta-label">Cápsulas</span>
+                  <span className="meta-value">{publicCapsules.length}</span>
+                </div>
               </div>
             </div>
+
             <div className="profile-actions">
               {currentUser && currentUser.id === userProfile.id && (
                 <button className="btn-secondary" onClick={openEditProfile}>Editar Perfil</button>
@@ -484,188 +779,55 @@ function UserProfile() {
 
               {currentUser && currentUser.id !== userProfile.id && (
                 <button className={`btn-primary ${isFollowing ? 'following' : ''}`} onClick={toggleFollowUser}>
-                  {isFollowing ? 'A Seguir' : 'Seguir'}
+                  {isFollowing ? '✅ A Seguir' : '➕ Seguir'}
                 </button>
               )}
             </div>
           </div>
-
-          {/* Stats Grid */}
-          <div className="profile-stats">
-            <motion.div 
-              className="stat-card"
-              whileHover={{ scale: 1.05 }}
-            >
-              <div className="stat-icon">📦</div>
-              <div className="stat-content">
-                <span className="stat-number">{userStats?.totalCapsules}</span>
-                <span className="stat-label">Cápsulas Públicas</span>
-              </div>
-            </motion.div>
-
-            <motion.div 
-              className="stat-card"
-              whileHover={{ scale: 1.05 }}
-            >
-              <div className="stat-icon">🔓</div>
-              <div className="stat-content">
-                <span className="stat-number">{userStats?.unlockedCapsules}</span>
-                <span className="stat-label">Desbloqueadas</span>
-              </div>
-            </motion.div>
-
-            <motion.div 
-              className="stat-card"
-              whileHover={{ scale: 1.05 }}
-            >
-              <div className="stat-icon"></div>
-              <div className="stat-content">
-                <span className="stat-number">{userStats?.totalViews}</span>
-                <span className="stat-label">Visualizações</span>
-              </div>
-            </motion.div>
-
-            <motion.div 
-              className="stat-card"
-              whileHover={{ scale: 1.05 }}
-            >
-              <div className="stat-icon"></div>
-              <div className="stat-content">
-                <span className="stat-number">{userStats?.totalLikes}</span>
-                <span className="stat-label">Gostos</span>
-              </div>
-            </motion.div>
-
-            <motion.div 
-              className="stat-card"
-              whileHover={{ scale: 1.05 }}
-            >
-              <div className="stat-icon">💬</div>
-              <div className="stat-content">
-                <span className="stat-number">{userStats?.totalComments}</span>
-                <span className="stat-label">Comentários</span>
-              </div>
-            </motion.div>
-          </div>
         </motion.div>
 
-        {/* Filtros e Controles */}
-        <motion.div 
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="controls-section"
-        >
-          <div className="filter-controls">
-            <div className="filter-group">
-              <label>Filtrar:</label>
-              <div className="filter-buttons">
-                <button 
-                  className={`filter-btn ${filterType === 'all' ? 'active' : ''}`}
-                  onClick={() => setFilterType('all')}
-                >
-                  Todas
-                </button>
-                <button 
-                  className={`filter-btn ${filterType === 'unlocked' ? 'active' : ''}`}
-                  onClick={() => setFilterType('unlocked')}
-                >
-                  Desbloqueadas
-                </button>
-                <button 
-                  className={`filter-btn ${filterType === 'locked' ? 'active' : ''}`}
-                  onClick={() => setFilterType('locked')}
-                >
-                  Bloqueadas
-                </button>
-              </div>
-            </div>
+        <div className="profile-tabs">
+          <button 
+            className={`tab-btn ${activeTab === 'capsules' ? 'active' : ''}`}
+            onClick={() => setActiveTab('capsules')}
+          >
+            📦 Cápsulas
+          </button>
+          <button 
+            className={`tab-btn ${activeTab === 'favorites' ? 'active' : ''}`}
+            onClick={() => setActiveTab('favorites')}
+          >
+            ⭐ Favoritos
+          </button>
+          <button 
+            className={`tab-btn ${activeTab === 'followers' ? 'active' : ''}`}
+            onClick={() => setActiveTab('followers')}
+          >
+            👥 Seguidores
+          </button>
+          <button 
+            className={`tab-btn ${activeTab === 'following' ? 'active' : ''}`}
+            onClick={() => setActiveTab('following')}
+          >
+            ➡️ A Seguir
+          </button>
 
-            <div className="sort-group">
-              <label>Ordenar por:</label>
-              <select 
-                value={sortBy} 
-                onChange={(e) => setSortBy(e.target.value)}
-                className="sort-select"
-              >
-                <option value="recent">Recentes</option>
-                <option value="popular">Populares</option>
-                <option value="trending">Em Tendência</option>
-              </select>
-            </div>
-          </div>
+          {currentUser && currentUser.id === userProfile?.id && (
+            <button 
+              className={`tab-btn ${activeTab === 'settings' ? 'active' : ''}`}
+              onClick={() => setActiveTab('settings')}
+            >
+              🔒 Privacidade
+            </button>
+          )}
+        </div>
 
-          <div className="results-info">
-            Mostrando {displayedCapsules.length} cápsula{displayedCapsules.length !== 1 ? 's' : ''}
-          </div>
-        </motion.div>
-
-        {/* Grid de Cápsulas */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="capsules-grid"
-        >
-          <AnimatePresence>
-            {displayedCapsules.length > 0 ? (
-              displayedCapsules.map((capsule, index) => (
-                <motion.div
-                  key={capsule.id}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="capsule-card"
-                  onClick={() => setSelectedCapsule(capsule)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <div className="capsule-header">
-                    <div 
-                      className="capsule-color"
-                      style={{ backgroundColor: capsule.color || '#6366f1' }}
-                    />
-                    <div className="capsule-title-badge">
-                      <h3>{capsule.title}</h3>
-                      <span className={`status-badge ${capsule.isUnlocked ? 'unlocked' : 'locked'}`}>
-                        {capsule.isUnlocked ? '🔓' : ''}
-                      </span>
-                    </div>
-                  </div>
-
-                  <p className="capsule-preview">
-                    {capsule.content.substring(0, 80)}...
-                  </p>
-
-                  <div className="capsule-meta">
-                    <span>📅 {format(new Date(capsule.unlockDate), 'dd MMM', { locale: pt })}</span>
-                    <span> {capsule.viewCount || 0}</span>
-                    <span> {capsule.likeCount || 0}</span>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); toggleFavorite(capsule.id); }}
-                      className={`fav-btn ${(capsule.isFavorited || capsule.isFavorite) ? 'active' : ''}`}
-                    >
-                      {(capsule.isFavorited || capsule.isFavorite) ? '★' : '☆'}
-                    </button>
-                  </div>
-
-                  <motion.div 
-                    className="view-button"
-                    whileHover={{ x: 5 }}
-                  >
-                    Ver Detalhes →
-                  </motion.div>
-                </motion.div>
-              ))
-            ) : (
-              <div className="empty-state">
-                <p>Este utilizador ainda não tem cápsulas públicas</p>
-              </div>
-            )}
+        <div className="tab-content-wrapper">
+          <AnimatePresence mode="wait">
+            {renderTabContent()}
           </AnimatePresence>
-        </motion.div>
+        </div>
 
-        {/* Modal de Detalhe da Cápsula */}
         <AnimatePresence>
           {selectedCapsule && (
             <CapsuleDetailModal 
@@ -675,7 +837,6 @@ function UserProfile() {
           )}
         </AnimatePresence>
 
-        {/* Edit Profile Modal */}
         <AnimatePresence>
           {showEditProfile && (
             <motion.div 
@@ -698,7 +859,6 @@ function UserProfile() {
                 </div>
                 
                 <div className="modal-content">
-                  {/* Seção de Avatar */}
                   <div className="avatar-section">
                     <div className="avatar-preview-container">
                       <div className="avatar-preview">
@@ -750,7 +910,6 @@ function UserProfile() {
                     </div>
                   </div>
 
-                  {/* Formulário de Informações */}
                   <div className="form-group">
                     <label>Nome de utilizador *</label>
                     <input 
@@ -816,7 +975,136 @@ function UserProfile() {
   );
 }
 
-// Componente Modal para detalhe da cápsula (atualizado para Português de Portugal)
+// ===== COMPONENTES AUXILIARES =====
+
+function CapsuleCard({ capsule, index, onToggleFavorite, onView, isOwner, isFavorite = false }) {
+  if (!capsule) return null;
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.9 }}
+      transition={{ delay: index * 0.05 }}
+      className={`capsule-card ${isFavorite ? 'favorite' : ''}`}
+      onClick={() => onView(capsule)}
+      style={{ cursor: 'pointer' }}
+    >
+      <div className="capsule-header">
+        <div 
+          className="capsule-color"
+          style={{ backgroundColor: capsule.color || '#6366f1' }}
+        />
+        <div className="capsule-title-badge">
+          <h3>{capsule.title}</h3>
+          <div className="capsule-badges">
+            {isFavorite && (
+              <span className="favorite-badge" title="Favorito">
+                ⭐
+              </span>
+            )}
+            <span className={`status-badge ${capsule.isUnlocked ? 'unlocked' : 'locked'}`}>
+              {capsule.isUnlocked ? '🔓' : '🔒'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <p className="capsule-preview">
+        {capsule.content.substring(0, 100)}...
+      </p>
+
+      <div className="capsule-meta">
+        <span className="meta-item">
+          <span className="meta-icon">📅</span>
+          {format(new Date(capsule.unlockDate), 'dd MMM', { locale: pt })}
+        </span>
+        <span className="meta-item">
+          <span className="meta-icon">👁️</span>
+          {capsule.viewCount || 0}
+        </span>
+        <span className="meta-item">
+          <span className="meta-icon">❤️</span>
+          {capsule.likeCount || 0}
+        </span>
+        {(isOwner || isFavorite) && (
+          <button
+            onClick={(e) => { 
+              e.stopPropagation(); 
+              onToggleFavorite(capsule.id); 
+            }}
+            className={`fav-btn ${capsule.isFavorited || capsule.isFavorite ? 'active' : ''}`}
+            title={capsule.isFavorited || capsule.isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+          >
+            {capsule.isFavorited || capsule.isFavorite ? '★' : '☆'}
+          </button>
+        )}
+      </div>
+
+      <motion.div 
+        className="view-button"
+        whileHover={{ x: 5 }}
+      >
+        Ver Detalhes →
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function UserCard({ user, index, currentUserId, onFollow, isFollowing, showFollowButton }) {
+  const navigate = useNavigate();
+  
+  if (!user) return null;
+  
+  const handleFollowClick = (e) => {
+    e.stopPropagation();
+    if (onFollow) {
+      onFollow(user.id);
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ delay: index * 0.05 }}
+      className="user-card"
+      onClick={() => navigate(`/profile/${user.id}`)}
+      style={{ cursor: 'pointer' }}
+    >
+      <div className="user-card-header">
+        <img 
+          src={user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`}
+          alt={user.username}
+          className="user-card-avatar"
+        />
+        {showFollowButton && (
+          <button 
+            className={`user-follow-btn ${isFollowing ? 'following' : ''}`}
+            onClick={handleFollowClick}
+          >
+            {isFollowing ? 'Seguindo' : 'Seguir'}
+          </button>
+        )}
+      </div>
+      
+      <div className="user-card-info">
+        <h4>{user.username || 'Utilizador'}</h4>
+        <p className="user-bio">{user.bio || 'Colecionador de cápsulas'}</p>
+        
+        {user.followedAt && (
+          <div className="followed-since">
+            <span className="followed-label">Desde:</span>
+            <span className="followed-date">
+              {format(new Date(user.followedAt), 'dd/MM/yyyy')}
+            </span>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
 function CapsuleDetailModal({ capsule, onClose }) {
   const { user } = useAuth();
   const [comments, setComments] = useState([]);
@@ -839,9 +1127,7 @@ function CapsuleDetailModal({ capsule, onClose }) {
         setIsLiked(!!likedRes.data.liked);
         const countRes = await likeAPI.getCount(capsule.id);
         setLikeCount(countRes.data.count || 0);
-      } catch (err) {
-        // ignore
-      }
+      } catch (err) {}
     };
 
     load();
@@ -854,8 +1140,10 @@ function CapsuleDetailModal({ capsule, onClose }) {
       const saved = res.data.comment;
       setComments(prev => [saved, ...prev]);
       setNewComment('');
+      toast.success('💬 Comentário adicionado!');
     } catch (error) {
       console.error('Error adding comment:', error);
+      toast.error('Erro ao adicionar comentário');
     }
   };
 
@@ -876,6 +1164,7 @@ function CapsuleDetailModal({ capsule, onClose }) {
       setIsFavorited(prev => !prev);
       const res = await favoriteAPI.toggle(capsule.id);
       setIsFavorited(res.data.favorited);
+      toast.success(res.data.favorited ? '⭐ Adicionado aos favoritos!' : '❌ Removido dos favoritos');
     } catch (error) {
       console.error('Error toggling favorite:', error);
       setIsFavorited(prev => !prev);
@@ -903,7 +1192,6 @@ function CapsuleDetailModal({ capsule, onClose }) {
         </div>
 
         <div className="modal-content">
-          {/* Cabeçalho */}
           <div className="modal-header">
             <div 
               className="modal-color-bar"
@@ -915,13 +1203,11 @@ function CapsuleDetailModal({ capsule, onClose }) {
             </p>
           </div>
 
-          {/* Conteúdo */}
           <div className="modal-body">
             <div className="capsule-content">
               <p>{capsule.content}</p>
             </div>
 
-            {/* Interações */}
             <div className="interaction-bar">
               <motion.button
                 whileHover={{ scale: 1.1 }}
@@ -929,18 +1215,18 @@ function CapsuleDetailModal({ capsule, onClose }) {
                 className={`interaction-btn ${isLiked ? 'liked' : ''}`}
                 onClick={handleLike}
               >
-                <span className="icon"></span>
+                <span className="icon">❤️</span>
                 <span className="count">{likeCount}</span>
               </motion.button>
 
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.95 }}
-                  className={`interaction-btn ${(isFavorited) ? 'favorited' : ''}`}
-                  onClick={handleToggleFavorite}
-                >
-                  <span className="icon">★</span>
-                </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                className={`interaction-btn ${isFavorited ? 'favorited' : ''}`}
+                onClick={handleToggleFavorite}
+              >
+                <span className="icon">★</span>
+              </motion.button>
 
               <div className="interaction-separator" />
 
@@ -950,7 +1236,6 @@ function CapsuleDetailModal({ capsule, onClose }) {
             </div>
           </div>
 
-          {/* Comentários */}
           <div className="comments-section">
             <h3>Comentários</h3>
 

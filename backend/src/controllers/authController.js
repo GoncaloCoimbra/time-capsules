@@ -31,7 +31,9 @@ exports.register = async (req, res) => {
       user: {
         id: user.id,
         username: user.username,
-        email: user.email
+        email: user.email,
+        avatar: user.avatar,
+        bio: user.bio
       }
     });
   } catch (error) {
@@ -65,7 +67,9 @@ exports.login = async (req, res) => {
       user: {
         id: user.id,
         username: user.username,
-        email: user.email
+        email: user.email,
+        avatar: user.avatar,
+        bio: user.bio
       }
     });
   } catch (error) {
@@ -88,14 +92,39 @@ exports.getOAuthConfig = async (req, res) => {
 exports.updateProfile = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const { username, avatar, bio, password } = req.body;
+    const { username, avatar, bio, password, isPrivate } = req.body;
 
     const user = await User.findByPk(userId);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     if (username) user.username = username;
-    if (avatar) user.avatar = avatar;
+    
+    // Validar e processar avatar
+    if (avatar && avatar.trim()) {
+      // Se é base64, verificar tamanho
+      if (avatar.startsWith('data:image')) {
+        // Remover "data:image/...;base64," para calcular tamanho real
+        const base64Data = avatar.split(',')[1];
+        const sizeInBytes = Buffer.byteLength(base64Data, 'base64');
+        
+        // Limite: 2MB para avatar em base64
+        if (sizeInBytes > 2 * 1024 * 1024) {
+          return res.status(400).json({ 
+            message: 'Avatar muito grande. Use uma imagem menor.',
+            maxSize: '2MB'
+          });
+        }
+      }
+      user.avatar = avatar.trim();
+    }
+    
     if (bio) user.bio = bio;
+    
+    // Atualiza o estado de privacidade da conta
+    if (typeof isPrivate === 'boolean') {
+      user.isPrivate = isPrivate;
+    }
+    
     if (password) {
       const bcrypt = require('bcryptjs');
       user.password = await bcrypt.hash(password, 10);
@@ -110,10 +139,12 @@ exports.updateProfile = async (req, res) => {
         username: user.username, 
         email: user.email, 
         avatar: user.avatar, 
-        bio: user.bio 
+        bio: user.bio,
+        isPrivate: user.isPrivate
       } 
     });
   } catch (error) {
+    console.error('❌ Erro ao atualizar perfil:', error);
     res.status(500).json({ message: 'Error updating profile', error: error.message });
   }
 };
@@ -122,7 +153,7 @@ exports.me = async (req, res) => {
   try {
     const userId = req.user.userId;
     const user = await User.findByPk(userId, {
-      attributes: ['id', 'username', 'email', 'avatar', 'bio']
+      attributes: ['id', 'username', 'email', 'avatar', 'bio', 'isPrivate']
     });
     if (!user) return res.status(404).json({ message: 'User not found' });
     res.json({ user });

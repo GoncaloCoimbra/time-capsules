@@ -39,6 +39,11 @@ const User = sequelize.define('User', {
   providerId: {
     type: DataTypes.STRING,
     allowNull: true
+  },
+  isPrivate: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    allowNull: false
   }
 }, {
   timestamps: true

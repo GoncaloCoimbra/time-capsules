@@ -62,6 +62,8 @@ i18n
             importError: "Error importing capsules",
             addedToFavorites: "Added to favorites",
             removedFromFavorites: "Removed from favorites",
+            followedCapsule: "You're now following this capsule",
+            unfollowedCapsule: "You stopped following this capsule",
             commentAdded: "Comment added",
             commentError: "Error adding comment",
             likeUpdated: "Like updated",
@@ -101,6 +103,7 @@ i18n
             unlocks: "Unlocks",
             views: "Views",
             likes: "Likes",
+            followers: "Followers",
             capsules: "Capsules",
             
             // Statistics
@@ -165,6 +168,12 @@ i18n
             // Empty States
             noCapsules: "You don't have any capsules yet. Create your first one!",
             noPublicCapsules: "No public capsules available at the moment.",
+            myPublic: "My Public",
+            myPublicCapsules: "My Public Capsules",
+            noMyPublicCapsules: "You don't have any public capsules yet.",
+            following: "Following",
+            followingCapsules: "Capsules I'm Following",
+            noFollowingCapsules: "You're not following any capsules yet.",
           },
           
           // Sidebar
@@ -509,6 +518,15 @@ i18n
             // Empty States
             noCapsules: "Ainda não tens cápsulas. Cria a tua primeira!",
             noPublicCapsules: "Nenhuma cápsula pública disponível no momento.",
+            myPublic: "Públicas",
+            myPublicCapsules: "Cápsulas Públicas",
+            noMyPublicCapsules: "Ainda não tens cápsulas públicas.",
+            following: "Seguindo",
+            followingCapsules: "Cápsulas que Estou a Seguir",
+            noFollowingCapsules: "Ainda não estás a seguir nenhuma cápsula.",
+            following: "Seguindo",
+            followingCapsules: "Cápsulas que Estou a Seguir",
+            noFollowingCapsules: "Ainda não estás a seguir nenhuma cápsula.",
           },
           
           // Sidebar
@@ -617,6 +635,7 @@ i18n
             unlocks: "Desbloquea",
             views: "Vistas",
             likes: "Me gusta",
+            followers: "Seguidores",
             capsules: "Cápsulas",
             
             // Statistics
@@ -681,6 +700,12 @@ i18n
             // Empty States
             noCapsules: "Aún no tienes cápsulas. ¡Crea tu primera!",
             noPublicCapsules: "No hay cápsulas públicas disponibles en este momento.",
+            myPublic: "Mis Públicas",
+            myPublicCapsules: "Mis Cápsulas Públicas",
+            noMyPublicCapsules: "Aún no tienes cápsulas públicas.",
+            following: "Siguiendo",
+            followingCapsules: "Cápsulas que Estoy Siguiendo",
+            noFollowingCapsules: "Aún no sigues ninguna cápsula.",
           },
           
           // Sidebar
@@ -789,6 +814,7 @@ i18n
             unlocks: "Déverrouille",
             views: "Vues",
             likes: "J'aime",
+            followers: "Abonnés",
             capsules: "Capsules",
             
             // Statistics
@@ -853,6 +879,12 @@ i18n
             // Empty States
             noCapsules: "Vous n'avez pas encore de capsules. Créez votre première!",
             noPublicCapsules: "Aucune capsule publique disponible pour le moment.",
+            myPublic: "Mes Publiques",
+            myPublicCapsules: "Mes Capsules Publiques",
+            noMyPublicCapsules: "Vous n'avez pas encore de capsules publiques.",
+            following: "Suivi",
+            followingCapsules: "Capsules Que Je Suis",
+            noFollowingCapsules: "Vous ne suivez aucune capsule pour le moment.",
           },
           
           // Sidebar
@@ -867,7 +899,7 @@ i18n
           },
         }
       },
-      // NOVO: Alemão (de)
+      //  Alemão (de)
       de: {
         translation: {
           // Common
@@ -962,6 +994,7 @@ i18n
             unlocks: "Entsperrt",
             views: "Ansichten",
             likes: "Gefällt mir",
+            followers: "Anhänger",
             capsules: "Kapseln",
             
             // Statistics
@@ -1026,6 +1059,12 @@ i18n
             // Empty States
             noCapsules: "Sie haben noch keine Kapseln. Erstellen Sie Ihre erste!",
             noPublicCapsules: "Derzeit sind keine öffentlichen Kapseln verfügbar.",
+            myPublic: "Meine Öffentlichen",
+            myPublicCapsules: "Meine Öffentlichen Kapseln",
+            noMyPublicCapsules: "Sie haben noch keine öffentlichen Kapseln.",
+            following: "Verfolge",
+            followingCapsules: "Kapseln, Denen Ich Folge",
+            noFollowingCapsules: "Sie verfolgen derzeit keine Kapseln.",
           },
           
           // Sidebar
@@ -1040,7 +1079,7 @@ i18n
           },
         }
       },
-      // NOVO: Italiano (it)
+      //  Italiano (it)
       it: {
         translation: {
           // Common
@@ -1135,6 +1174,7 @@ i18n
             unlocks: "Sblocchi",
             views: "Visualizzazioni",
             likes: "Mi piace",
+            followers: "Seguaci",
             capsules: "Capsule",
             
             // Statistics
@@ -1199,6 +1239,12 @@ i18n
             // Empty States
             noCapsules: "Non hai ancora capsule. Crea la tua prima!",
             noPublicCapsules: "Nessuna capsula pubblica disponibile al momento.",
+            myPublic: "Mie Pubbliche",
+            myPublicCapsules: "Le Mie Capsule Pubbliche",
+            noMyPublicCapsules: "Non hai ancora capsule pubbliche.",
+            following: "In Seguiti",
+            followingCapsules: "Capsule Che Sto Seguendo",
+            noFollowingCapsules: "Al momento non stai seguendo nessuna capsule.",
           },
           
           // Sidebar
@@ -1213,7 +1259,7 @@ i18n
           },
         }
       },
-      // NOVO: Japonês (ja)
+      //  Japonês (ja)
       ja: {
         translation: {
           // Common
@@ -1372,6 +1418,9 @@ i18n
             // Empty States
             noCapsules: "まだカプセルがありません。最初のカプセルを作成しましょう！",
             noPublicCapsules: "現在、公開カプセルは利用できません。",
+            following: "フォロー中",
+            followingCapsules: "フォロー中のカプセル",
+            noFollowingCapsules: "現在、フォロー中のカプセルはありません。",
           },
           
           // Sidebar
@@ -1386,7 +1435,7 @@ i18n
           },
         }
       },
-      // NOVO: Chinês (zh)
+      //  Chinês (zh)
       zh: {
         translation: {
           // Common
