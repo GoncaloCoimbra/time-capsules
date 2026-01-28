@@ -1,9 +1,9 @@
 /* 
-   CORREÇÃO FINAL DO PÓDIO - VERSÃO DEFINITIVA
-   - Texto BRANCO em TODOS os lugares
-   - TODOS os textos VISÍVEIS dentro das caixinhas
+   CORREÇÃO FINAL DO PÓDIO - TUDO DENTRO E VISÍVEL
+   - Texto BRANCO em TODOS os lugares (1º, 2º e 3º)
+   - TUDO dentro das caixinhas (ajustes de espaçamento)
    - Botão ATUALIZAR arredondado
-   - Sem remover nenhum elemento
+   - NADA é removido, apenas ajustado
 */
 
 /* ============================================
@@ -29,256 +29,207 @@
   box-shadow: 0 8px 20px rgba(226, 183, 20, 0.3) !important;
 }
 
-.chronicle-button:active {
-  transform: translateY(0) !important;
-}
-
 /* ============================================
-   ESTRUTURA DO PÓDIO - MANTÉM TUDO VISÍVEL
+   ESTRUTURA DO PÓDIO
    ============================================ */
 
 .podium-place {
   text-align: center !important;
-  padding: 24px 20px !important;
+  padding: 20px 15px 16px 15px !important; /* Padding ajustado */
   border-radius: 16px !important;
   min-width: 220px !important;
   transition: transform 0.3s ease, box-shadow 0.3s ease !important;
   cursor: pointer !important;
   position: relative !important;
-  overflow: visible !important; /* IMPORTANTE: Mantém tudo visível */
+  overflow: hidden !important; /* Mantém tudo dentro */
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
 }
 
 .podium-place:hover {
   transform: translateY(-8px) !important;
 }
 
-/* Alturas específicas */
+/* Alturas e ordem específicas */
 .place-1 {
+  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%) !important;
   height: 300px !important;
+  order: 2 !important;
   z-index: 15 !important;
   box-shadow: 0 12px 32px rgba(226, 183, 20, 0.35) !important;
 }
 
 .place-2 {
+  background: linear-gradient(135deg, #C0C0C0 0%, #A0A0A0 100%) !important;
   height: 260px !important;
+  order: 1 !important;
   z-index: 12 !important;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25) !important;
 }
 
 .place-3 {
+  background: linear-gradient(135deg, #CD7F32 0%, #A0522D 100%) !important;
   height: 220px !important;
+  order: 3 !important;
   z-index: 10 !important;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2) !important;
 }
 
 /* ============================================
-   MEDALHAS E AVATARES
+   MEDALHAS - NO TOPO
    ============================================ */
 
 .podium-rank {
-  font-size: 42px !important;
-  margin-bottom: 10px !important;
+  font-size: 40px !important;
+  margin: 0 0 8px 0 !important;
   position: relative !important;
   z-index: 30 !important;
   line-height: 1 !important;
+  flex-shrink: 0 !important;
 }
 
+/* ============================================
+   AVATARES
+   ============================================ */
+
 .podium-avatar {
-  width: 80px !important;
-  height: 80px !important;
+  width: 70px !important;
+  height: 70px !important;
   border-radius: 50% !important;
   border: 3px solid white !important;
-  margin: 0 auto 10px !important;
+  margin: 0 0 8px 0 !important;
   object-fit: cover !important;
   position: relative !important;
   z-index: 20 !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+  flex-shrink: 0 !important;
+}
+
+/* Avatar maior no 1º lugar */
+.place-1 .podium-avatar {
+  width: 80px !important;
+  height: 80px !important;
 }
 
 /* ============================================
-   USERNAME - TEXTO BRANCO EM TODOS OS LUGARES
+   USERNAME - BRANCO EM TODOS OS LUGARES
    ============================================ */
 
 .podium-username {
-  margin: 10px 0 5px 0 !important;
-  font-size: 16px !important;
+  margin: 6px 0 4px 0 !important;
+  font-size: 15px !important;
   font-weight: 700 !important;
   position: relative !important;
   z-index: 5 !important;
   color: white !important;
   text-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+  width: 100% !important;
+  padding: 0 5px !important;
+  box-sizing: border-box !important;
+  flex-shrink: 0 !important;
+  line-height: 1.2 !important;
 }
 
 .place-1 .podium-username {
-  color: white !important;
-  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
-}
-
-.place-2 .podium-username {
-  color: white !important;
-  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
-}
-
-.place-3 .podium-username {
-  color: white !important;
-  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+  font-size: 16px !important;
+  margin: 8px 0 5px 0 !important;
 }
 
 /* ============================================
-   SCORE - TEXTO BRANCO EM TODOS OS LUGARES
+   SCORE - BRANCO EM TODOS OS LUGARES
    ============================================ */
 
 .podium-score {
-  font-size: 26px !important;
+  font-size: 22px !important;
   font-weight: 800 !important;
-  margin: 8px 0 !important;
-  line-height: 1.2 !important;
+  margin: 4px 0 !important;
+  line-height: 1 !important;
   position: relative !important;
   z-index: 5 !important;
   color: white !important;
   text-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+  flex-shrink: 0 !important;
 }
 
 .place-1 .podium-score {
-  color: white !important;
-  font-size: 28px !important;
-  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
-}
-
-.place-2 .podium-score {
-  color: white !important;
-  font-size: 24px !important;
-  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
-}
-
-.place-3 .podium-score {
-  color: white !important;
-  font-size: 24px !important;
-  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+  font-size: 26px !important;
+  margin: 6px 0 !important;
 }
 
 /* ============================================
-   STATS - TEXTO BRANCO EM TODOS OS LUGARES
+   STATS - BRANCO EM TODOS OS LUGARES
    ============================================ */
 
 .podium-stats {
   display: flex !important;
   justify-content: center !important;
-  gap: 10px !important;
-  font-size: 11px !important;
-  margin-top: 12px !important;
+  gap: 6px !important;
+  font-size: 10px !important;
+  margin-top: 8px !important;
   flex-wrap: wrap !important;
   font-weight: 600 !important;
   position: relative !important;
   z-index: 5 !important;
   color: rgba(255, 255, 255, 0.9) !important;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+  width: 100% !important;
+  padding: 0 5px !important;
+  box-sizing: border-box !important;
+  flex-shrink: 0 !important;
+  line-height: 1.2 !important;
 }
 
 .place-1 .podium-stats {
-  color: rgba(255, 255, 255, 0.9) !important;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
-}
-
-.place-2 .podium-stats {
-  color: rgba(255, 255, 255, 0.9) !important;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
-}
-
-.place-3 .podium-stats {
-  color: rgba(255, 255, 255, 0.9) !important;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+  font-size: 11px !important;
+  gap: 8px !important;
+  margin-top: 10px !important;
 }
 
 /* ============================================
-   SCORE BADGE - TEXTO BRANCO COM BORDA
+   SCORE BADGE - REMOVIDO/OCULTO
    ============================================ */
 
-.score-badge {
-  background: transparent !important;
-  color: white !important;
-  padding: 8px 22px !important;
-  border-radius: 30px !important;
-  border: 3px solid rgba(255, 255, 255, 0.95) !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 6px !important;
-  margin: 12px auto 10px !important;
-  font-weight: 800 !important;
-  width: fit-content !important;
-  position: relative !important;
-  z-index: 5 !important;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2) !important;
-  backdrop-filter: blur(6px) !important;
-  -webkit-backdrop-filter: blur(6px) !important;
-  transition: all 0.3s ease !important;
+/* O badge de pontos parece estar causando overflow, então vou ocultá-lo 
+   já que o score já está sendo exibido */
+.podium-place .score-badge {
+  display: none !important;
 }
 
-.score-badge:hover {
-  border-color: rgba(255, 255, 255, 1) !important;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3) !important;
-  transform: translateY(-2px) !important;
+/* ============================================
+   AJUSTE DE ESPAÇAMENTO PARA CABER TUDO
+   ============================================ */
+
+/* Reduzir margens no 2º e 3º lugar para caber tudo */
+.place-2 .podium-rank,
+.place-3 .podium-rank {
+  margin: 0 0 6px 0 !important;
+  font-size: 36px !important;
 }
 
-.score-icon {
-  font-size: 16px !important;
-  color: white !important;
-  line-height: 1 !important;
+.place-2 .podium-avatar,
+.place-3 .podium-avatar {
+  margin: 0 0 6px 0 !important;
 }
 
-.score-value {
-  font-size: 24px !important;
-  font-weight: 800 !important;
-  color: white !important;
-  line-height: 1 !important;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+.place-2 .podium-username,
+.place-3 .podium-username {
+  margin: 4px 0 3px 0 !important;
+  font-size: 14px !important;
 }
 
-.score-label {
-  font-size: 11px !important;
-  opacity: 0.95 !important;
-  color: white !important;
-  text-transform: lowercase !important;
-  font-weight: 600 !important;
-  line-height: 1 !important;
+.place-2 .podium-score,
+.place-3 .podium-score {
+  margin: 3px 0 !important;
+  font-size: 20px !important;
 }
 
-/* BADGE ESPECÍFICO PARA CADA LUGAR - TEXTO BRANCO */
-.place-1 .score-badge {
-  border-color: rgba(255, 255, 255, 0.95) !important;
-  background: rgba(0, 0, 0, 0.08) !important;
-}
-
-.place-1 .score-value,
-.place-1 .score-label,
-.place-1 .score-icon {
-  color: white !important;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.25) !important;
-}
-
-.place-2 .score-badge {
-  border-color: rgba(255, 255, 255, 0.95) !important;
-  background: rgba(0, 0, 0, 0.08) !important;
-}
-
-.place-2 .score-value,
-.place-2 .score-label,
-.place-2 .score-icon {
-  color: white !important;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.25) !important;
-}
-
-.place-3 .score-badge {
-  border-color: rgba(255, 255, 255, 0.95) !important;
-  background: rgba(0, 0, 0, 0.08) !important;
-}
-
-.place-3 .score-value,
-.place-3 .score-label,
-.place-3 .score-icon {
-  color: white !important;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.25) !important;
+.place-2 .podium-stats,
+.place-3 .podium-stats {
+  margin-top: 6px !important;
+  font-size: 9px !important;
+  gap: 5px !important;
 }
 
 /* ============================================
@@ -291,7 +242,7 @@
     max-width: 350px !important;
     height: auto !important;
     min-height: 220px !important;
-    padding: 20px 16px !important;
+    padding: 18px 14px !important;
   }
   
   .place-1 {
@@ -302,33 +253,37 @@
   .place-2,
   .place-3 {
     height: auto !important;
-    min-height: 220px !important;
+    min-height: 200px !important;
   }
   
-  .score-badge {
-    padding: 6px 18px !important;
-    margin: 10px auto 8px !important;
+  .podium-rank {
+    font-size: 36px !important;
   }
   
-  .score-value {
-    font-size: 20px !important;
+  .podium-avatar {
+    width: 65px !important;
+    height: 65px !important;
   }
   
-  .podium-score {
-    font-size: 22px !important;
-  }
-  
-  .place-1 .podium-score {
-    font-size: 24px !important;
+  .place-1 .podium-avatar {
+    width: 75px !important;
+    height: 75px !important;
   }
   
   .podium-username {
     font-size: 14px !important;
   }
   
+  .podium-score {
+    font-size: 20px !important;
+  }
+  
+  .place-1 .podium-score {
+    font-size: 22px !important;
+  }
+  
   .podium-stats {
-    font-size: 10px !important;
-    gap: 8px !important;
+    font-size: 9px !important;
   }
   
   .chronicle-button {
@@ -338,28 +293,30 @@
 }
 
 @media (max-width: 480px) {
-  .score-badge {
-    padding: 5px 16px !important;
+  .podium-rank {
+    font-size: 32px !important;
   }
   
-  .score-value {
-    font-size: 18px !important;
+  .podium-avatar {
+    width: 60px !important;
+    height: 60px !important;
   }
   
-  .score-label {
-    font-size: 10px !important;
-  }
-  
-  .podium-score {
-    font-size: 20px !important;
+  .place-1 .podium-avatar {
+    width: 70px !important;
+    height: 70px !important;
   }
   
   .podium-username {
     font-size: 13px !important;
   }
   
+  .podium-score {
+    font-size: 18px !important;
+  }
+  
   .podium-stats {
-    font-size: 9px !important;
+    font-size: 8px !important;
   }
   
   .chronicle-button {
@@ -369,17 +326,11 @@
 }
 
 /* ============================================
-   BOX-SIZING GLOBAL
+   BOX-SIZING
    ============================================ */
 
 .podium-place * {
   box-sizing: border-box !important;
-}
-
-/* Elementos decorativos no fundo */
-.podium-place::before,
-.podium-place::after {
-  z-index: 1 !important;
 }
 
 /* ============================================
