@@ -523,10 +523,8 @@ Open a Pull Request
 
 📄 License
 This project is licensed under the MIT License. See LICENSE file for details.
-👨‍💻 Authors
-
-Gonçalo Coimbra - Full Stack Developer
-Ana - Full Stack Developer
+👤 Author: Gonçalo Coimbra — Full Stack Developer
+🎨 Design: Logo e paleta de cores em colaboração com Ana
 
 🙏 Acknowledgments
 
